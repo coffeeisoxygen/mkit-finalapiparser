@@ -3,7 +3,7 @@ import time
 from fastapi import Request
 from starlette.middleware.base import BaseHTTPMiddleware
 
-from mlogg import logger
+from app.mlogg import logger
 
 
 class LoggingMiddleware(BaseHTTPMiddleware):

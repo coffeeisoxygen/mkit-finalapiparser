@@ -1,9 +1,9 @@
 from fastapi.concurrency import asynccontextmanager
 
+from app.mlogg import init_logging, logger
 from app.repositories.rep_member import InMemoryMemberRepository
 from app.repositories.rep_module import InMemoryModuleRepository
 from app.repositories.rep_user import UserRepository
-from mlogg import init_logging, logger
 
 
 @asynccontextmanager

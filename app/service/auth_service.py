@@ -3,18 +3,25 @@ from datetime import UTC, datetime, timedelta
 import jwt
 
 from app.custom.cst_exceptions import AuthError, TokenExpiredError, TokenInvalidError
+from app.mlogg import logger
+from app.repositories.rep_user import UserRepository
 from app.schemas.sch_user import UserInDB
 from app.service.srv_hasher import HasherService
-from mlogg import logger
 
 
 class AuthService:
     """Service for authentication and JWT token management.
+
     Handles user authentication, token creation, and token validation.
     """
 
     def __init__(
-        self, secret_key, algorithm, expire_minutes, user_repo, hasher: HasherService
+        self,
+        secret_key: str,
+        algorithm: str,
+        expire_minutes: int,
+        user_repo: UserRepository,
+        hasher: HasherService,
     ):
         self.secret_key = secret_key
         self.algorithm = algorithm

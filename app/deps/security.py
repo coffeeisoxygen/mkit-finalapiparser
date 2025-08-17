@@ -8,8 +8,8 @@ oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/login")
 
 
 async def get_current_user(
+    auth: DepAuthService,
     token: str = Depends(oauth2_scheme),
-    auth: DepAuthService = Depends(),
 ):
     try:
         user = auth.get_user_from_token(token)
