@@ -1,9 +1,11 @@
 # pyright: reportArgumentType= false
 
 import pytest
+from app.custom.cst_exceptions import EntityExcError
 from app.repositories.rep_member import InMemoryMemberRepository
 from app.schemas.sch_member import MemberCreate, MemberUpdate
 from app.service.srv_member import MemberService
+from pydantic import ValidationError
 
 
 @pytest.fixture
@@ -56,7 +58,8 @@ def test_remove_member(service: MemberService):
     )
     public = service.register(data)
     service.remove(public.memberid)
-    assert service.get(public.memberid) is None
+    with pytest.raises(EntityExcError):
+        service.get(public.memberid)
 
 
 def test_register_duplicate_member(service: MemberService):
@@ -88,13 +91,13 @@ def test_remove_nonexistent_member(service: MemberService):
 
 
 def test_register_member_with_empty_fields(service: MemberService):
-    data = MemberCreate(
-        name="",
-        pin="",
-        password="",
-        ipaddress="",
-        report_url="",
-        allow_nosign=False,
-    )
-    with pytest.raises(Exception):
+    with pytest.raises(ValidationError):
+        data = MemberCreate(
+            name="",
+            pin="",
+            password="",
+            ipaddress="",
+            report_url="",
+            allow_nosign=False,
+        )
         service.register(data)
