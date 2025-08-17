@@ -2,6 +2,7 @@
 
 import re
 
+from app.custom.cst_exceptions import EntityExcError
 from app.repositories.base_repo import AbstractRepository
 from app.schemas.sch_member import (
     MemberCreate,
@@ -21,6 +22,8 @@ class MemberService:
         """Daftarkan member baru."""
         base_id = re.sub(r"[^a-zA-Z0-9]", "", data.name.upper())[:5]
         memberid = base_id + "001"
+        if self.repo.get(memberid):
+            raise EntityExcError(f"Member dengan ID {memberid} sudah terdaftar.")
         member = MemberInDB(
             memberid=memberid,
             name=data.name,
@@ -32,14 +35,14 @@ class MemberService:
             is_active=True,
         )
         self.repo.add(member.memberid, member)
-        return MemberPublic(**member.dict(exclude={"pin", "password"}))
+        return MemberPublic(**member.model_dump(exclude={"pin", "password"}))
 
     def get(self, memberid: str) -> MemberPublic | None:
         """Ambil member by id."""
         m = self.repo.get(memberid)
         if not m:
-            return None
-        return MemberPublic(**m.dict(exclude={"pin", "password"}))
+            raise EntityExcError(f"Member dengan ID {memberid} tidak ditemukan.")
+        return MemberPublic(**m.model_dump(exclude={"pin", "password"}))
 
     def list_members(self) -> list[MemberPublic]:
         """Ambil semua member."""
@@ -52,12 +55,15 @@ class MemberService:
         """Update data member."""
         member = self.repo.get(memberid)
         if not member:
-            raise KeyError(f"Member {memberid} tidak ditemukan.")
+            raise EntityExcError(f"Member dengan ID {memberid} tidak ditemukan.")
 
-        updated_data = member.copy(update=data.dict(exclude_unset=True))
+        updated_data = member.model_copy(update=data.model_dump(exclude_unset=True))
         self.repo.update(memberid, updated_data)
-        return MemberPublic(**updated_data.dict(exclude={"pin", "password"}))
+        return MemberPublic(**updated_data.model_dump(exclude={"pin", "password"}))
 
     def remove(self, memberid: str) -> None:
         """Hapus member."""
+        member = self.repo.get(memberid)
+        if not member:
+            raise EntityExcError(f"Member dengan ID {memberid} tidak ditemukan.")
         self.repo.remove(memberid)
