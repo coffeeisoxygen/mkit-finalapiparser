@@ -41,7 +41,6 @@ class Settings(BaseSettings):
     app_debug: bool = False
     app_name: str = "MKIT_WRAPPER"
     app_version: str = version
-    db_path: str
     config_path: str
 
 
