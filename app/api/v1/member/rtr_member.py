@@ -1,6 +1,7 @@
 from fastapi import APIRouter
 
 from app.deps.deps_service import DepMemberService
+from app.mlogg import logger
 from app.schemas.sch_member import (
     MemberCreate,
     MemberDelete,
@@ -12,31 +13,51 @@ router = APIRouter()
 
 
 @router.post("/", response_model=MemberPublic)
-def create_member(data: MemberCreate, service: DepMemberService):
+def create_member(
+    data: MemberCreate,
+    service: DepMemberService,
+):
     """Buat member baru."""
-    return service.create_member(data)
+    log = logger.bind(
+        operation="create_member",
+    )
+    result = service.create_member(data)
+    log.success("Member created successfully", member_id=result.memberid)
+    return result
 
 
 @router.get("/{memberid}", response_model=MemberPublic)
-def get_member(memberid: str, service: DepMemberService):
+def get_member(
+    memberid: str,
+    service: DepMemberService,
+):
     """Ambil member by ID."""
     return service.get_member(memberid)
 
 
 @router.put("/{memberid}", response_model=MemberPublic)
-def update_member(memberid: str, data: MemberUpdate, service: DepMemberService):
+def update_member(
+    memberid: str,
+    data: MemberUpdate,
+    service: DepMemberService,
+):
     """Update data member."""
     return service.update_member(memberid, data)
 
 
 @router.delete("/", status_code=204)
-def remove_member(data: MemberDelete, service: DepMemberService):
+def remove_member(
+    data: MemberDelete,
+    service: DepMemberService,
+):
     """Hapus member."""
     service.remove_member(data)
     return None
 
 
 @router.get("/", response_model=list[MemberPublic])
-def list_members(service: DepMemberService):
+def list_members(
+    service: DepMemberService,
+):
     """Ambil semua member."""
     return service.list_members()
