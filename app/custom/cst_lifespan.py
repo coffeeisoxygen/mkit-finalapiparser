@@ -2,6 +2,7 @@ from fastapi.concurrency import asynccontextmanager
 
 from app.repositories.rep_member import InMemoryMemberRepository
 from app.repositories.rep_module import InMemoryModuleRepository
+from app.repositories.rep_user import UserRepository
 from mlogg import init_logging, logger
 
 
@@ -18,6 +19,8 @@ async def app_lifespan(app):  # noqa: ANN001, RUF029
         with logger.contextualize(repo="module_repo"):
             app.state.module_repo = InMemoryModuleRepository()
             logger.info("Module repository initialized")
+        with logger.contextualize(repo="auth_repo"):
+            app.state.auth_repo = UserRepository()
     except Exception as e:
         logger.error(f"Error during application startup: {e}")
         raise

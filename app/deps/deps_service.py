@@ -4,6 +4,7 @@ from fastapi import Depends, Request
 
 from app.repositories.rep_member import InMemoryMemberRepository
 from app.repositories.rep_module import InMemoryModuleRepository
+from app.repositories.rep_user import UserRepository
 from app.service.srv_member import MemberService
 from app.service.srv_module import ModuleService
 
@@ -14,6 +15,10 @@ def get_member_repo(request: Request) -> InMemoryMemberRepository:
 
 def get_module_repo(request: Request) -> InMemoryModuleRepository:
     return request.app.state.module_repo
+
+
+def get_user_repo(request: Request) -> UserRepository:
+    return request.app.state.auth_repo
 
 
 def get_member_service(repo=Depends(get_member_repo)):
