@@ -2,7 +2,7 @@
 
 from app.config import get_settings
 
-APP_NAME = get_settings().app_name
+APP_NAME = get_settings().APP_NAME
 
 
 # =========================

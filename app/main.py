@@ -1,5 +1,5 @@
 import uvicorn
-from fastapi import Depends, FastAPI, Request
+from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse
 
 from app.api import register_routers
@@ -9,8 +9,6 @@ from app.custom.cst_exceptions import (
 )
 from app.custom.cst_lifespan import app_lifespan
 from app.custom.cst_middleware import LoggingMiddleware
-from app.deps.deps_auth import get_auth_service
-from app.service.auth_service import AuthService, UserLogin
 
 app = FastAPI(lifespan=app_lifespan)
 app.add_middleware(LoggingMiddleware)
@@ -34,11 +32,6 @@ async def app_exception_handler(request: Request, exc: AppExceptionError):  # no
 @app.get("/")
 async def read_root():  # noqa: D103
     return {"message": "Hello World"}
-
-
-@app.post("/login")
-def login(user_login: UserLogin, auth: AuthService = Depends(get_auth_service)):  # noqa: D103
-    return auth.login(user_login)
 
 
 if __name__ == "__main__":
