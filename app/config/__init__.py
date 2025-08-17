@@ -42,7 +42,9 @@ class Settings(BaseSettings):
     app_name: str = "MKIT_WRAPPER"
     app_version: str = version
     app_admin_username: str = "admin"
-    app_admin_password: str = "admin"
+    app_admin_password: str = (
+        "$2y$10$C27B4x5BCDuz2D0leU8K7.OhBZ5joc8GR3owPRMz2YNODK2QDzr12"
+    )
 
 
 @lru_cache
