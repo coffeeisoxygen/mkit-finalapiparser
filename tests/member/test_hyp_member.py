@@ -90,9 +90,9 @@ def test_register_member_edge_cases(
     except Exception:
         # Expecting failure for invalid cases
         assert (
-            name == ""
-            or pin == ""
-            or password == ""
+            not name
+            or not pin
+            or not password
             or ipaddress == "999.999.999.999"
             or report_url == "not-a-url"
         )
