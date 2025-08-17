@@ -1,4 +1,5 @@
 # pyright: reportArgumentType=false
+# ruff : noqa
 import app.custom.cst_exceptions as exc
 import pytest
 from app.config import ProviderEnums
