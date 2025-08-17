@@ -1,7 +1,5 @@
 """Member service: business logic untuk Member."""
 
-import re
-
 from app.custom.cst_exceptions import EntityExcError
 from app.repositories.base_repo import AbstractRepository
 from app.schemas.sch_member import (
@@ -20,8 +18,8 @@ class MemberService:
 
     def register(self, data: MemberCreate) -> MemberPublic:
         """Daftarkan member baru."""
-        base_id = re.sub(r"[^a-zA-Z0-9]", "", data.name.upper())[:5]
-        memberid = base_id + "001"
+        nomor_urut = len(self.repo.all()) + 1
+        memberid = f"MKIT{str(nomor_urut).zfill(3)}"
         if self.repo.get(memberid):
             raise EntityExcError(f"Member dengan ID {memberid} sudah terdaftar.")
         member = MemberInDB(

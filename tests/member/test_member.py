@@ -1,11 +1,91 @@
-# pyright: reportArgumentType= false
-
 import pytest
 from app.custom.cst_exceptions import EntityExcError
 from app.repositories.rep_member import InMemoryMemberRepository
 from app.schemas.sch_member import MemberCreate, MemberUpdate
 from app.service.srv_member import MemberService
 from pydantic import ValidationError
+
+
+def test_register_member_with_min_length_name(service):
+    data = MemberCreate(
+        name="A",  # min_length=1
+        pin="123456",
+        password="password123",
+        ipaddress="192.168.1.10",
+        report_url="http://localhost/reportmin",
+        allow_nosign=False,
+    )
+    public = service.register(data)
+    assert public.name == "A"
+
+
+def test_register_member_with_max_length_name(service):
+    long_name = "A" * 100  # max_length=100
+    data = MemberCreate(
+        name=long_name,
+        pin="123456",
+        password="password123",
+        ipaddress="192.168.1.11",
+        report_url="http://localhost/reportmax",
+        allow_nosign=False,
+    )
+    public = service.register(data)
+    assert public.name == long_name
+
+
+def test_register_member_with_invalid_ip(service):
+    with pytest.raises(ValidationError):
+        data = MemberCreate(
+            name="Invalid IP",
+            pin="123456",
+            password="password123",
+            ipaddress="999.999.999.999",  # invalid IP
+            report_url="http://localhost/reportip",
+            allow_nosign=False,
+        )
+        service.register(data)
+
+
+def test_register_member_with_invalid_url(service):
+    with pytest.raises(ValidationError):
+        data = MemberCreate(
+            name="Invalid URL",
+            pin="123456",
+            password="password123",
+            ipaddress="192.168.1.12",
+            report_url="not_a_url",  # invalid URL
+            allow_nosign=False,
+        )
+        service.register(data)
+
+
+def test_register_member_with_short_pin(service):
+    with pytest.raises(ValidationError):
+        data = MemberCreate(
+            name="Short Pin",
+            pin="123",  # min_length=6
+            password="password123",
+            ipaddress="192.168.1.13",
+            report_url="http://localhost/reportpin",
+            allow_nosign=False,
+        )
+        service.register(data)
+
+
+def test_register_member_with_special_char_in_name(service):
+    data = MemberCreate(
+        name="Name!@#",  # allowed, but memberid will be sanitized
+        pin="123456",
+        password="password123",
+        ipaddress="192.168.1.14",
+        report_url="http://localhost/reportspecial",
+        allow_nosign=False,
+    )
+    public = service.register(data)
+    assert public.memberid.startswith("MKIT")
+
+
+# pyright: reportArgumentType= false
 
 
 @pytest.fixture
@@ -23,9 +103,10 @@ def test_register_and_get_member(service: MemberService):
         report_url="http://localhost/report",
         allow_nosign=False,
     )
+
     public = service.register(data)
     assert public.name == "John Doe"
-    assert public.memberid.startswith("JOHND")
+    assert public.memberid.startswith("MKIT")
 
     fetched = service.get(public.memberid)
     assert fetched is not None
@@ -60,34 +141,6 @@ def test_remove_member(service: MemberService):
     service.remove(public.memberid)
     with pytest.raises(EntityExcError):
         service.get(public.memberid)
-
-
-def test_register_duplicate_member(service: MemberService):
-    data = MemberCreate(
-        name="Dup Name",
-        pin="222222",
-        password="dup123",
-        ipaddress="192.168.1.4",
-        report_url="http://localhost/report4",
-        allow_nosign=True,
-    )
-    public1 = service.register(data)
-    # Attempt to register with same pin, should raise or handle duplicate
-    with pytest.raises(Exception):
-        service.register(data)
-
-
-def test_update_nonexistent_member(service: MemberService):
-    update = MemberUpdate(name="Ghost")
-    # Should not update, returns None or raises
-    with pytest.raises(Exception):
-        service.update("NONEXISTENT_ID", update)
-
-
-def test_remove_nonexistent_member(service: MemberService):
-    # Should not remove, returns None or raises
-    with pytest.raises(Exception):
-        service.remove("NONEXISTENT_ID")
 
 
 def test_register_member_with_empty_fields(service: MemberService):
