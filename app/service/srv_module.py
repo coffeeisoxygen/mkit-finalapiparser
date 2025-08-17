@@ -1,54 +1,42 @@
 """module service logic."""
 
-from app.custom.cst_exceptions import EntityExcError
-from app.repositories.base_repo import AbstractRepository
-from app.schemas.sch_module import ModuleCreate, ModuleInDB, ModuleUpdate
+from app.repositories.rep_module import InMemoryModuleRepository
+from app.schemas.sch_module import (
+    ModuleCreate,
+    ModuleDelete,
+    ModulePublic,
+    ModuleUpdate,
+)
 
 
 class ModuleService:
     """Service untuk mengelola module."""
 
-    def __init__(self, repository: AbstractRepository[ModuleInDB, str]):
-        self.repository = repository
+    """Business logic untuk Member."""
 
-    def register(self, data: ModuleCreate) -> ModuleInDB:
-        """Daftarkan module baru."""
-        module_db = ModuleInDB(**data.model_dump())
-        if self.repository.get(module_db.moduleid):
-            raise EntityExcError(f"Module ID {module_db.moduleid} sudah terdaftar.")
-        self.repository.add(module_db.moduleid, module_db)
-        return self._mask_module(module_db)
+    def __init__(self, repo: InMemoryModuleRepository):
+        self.repo = repo
 
-    def get(self, moduleid: str) -> ModuleInDB | None:
-        """Ambil module by id."""
-        m = self.repository.get(moduleid)
-        if not m:
-            raise EntityExcError(f"Module dengan ID {moduleid} tidak ditemukan.")
-        return self._mask_module(m)
+    def register(self, data: ModuleCreate) -> ModulePublic:
+        """Register module baru."""
+        module = self.repo.create(data)
+        return ModulePublic(**module.model_dump())
 
-    def list_modules(self) -> list[ModuleInDB]:
-        """Ambil semua module."""
-        return [self._mask_module(m) for m in self.repository.all()]
-
-    def update(self, moduleid: str, data: ModuleUpdate) -> ModuleInDB:
-        """Update data module."""
-        module = self.repository.get(moduleid)
+    def update(self, moduleid: str, data: ModuleUpdate) -> ModulePublic:
+        """Update module."""
+        module = self.repo.get(moduleid)
         if not module:
-            raise EntityExcError(f"Module dengan ID {moduleid} tidak ditemukan.")
-        updated_data = module.copy(update=data.dict(exclude_unset=True))
-        self.repository.update(moduleid, updated_data)
-        return self._mask_module(updated_data)
+            raise KeyError(f"Module {moduleid} tidak ditemukan.")
 
-    def remove(self, moduleid: str) -> None:
-        """Hapus module."""
-        module = self.repository.get(moduleid)
-        if not module:
-            raise EntityExcError(f"Module dengan ID {moduleid} tidak ditemukan.")
-        self.repository.remove(moduleid)
+        update_data = data.model_dump(exclude_unset=True)
+        updated = module.model_copy(update=update_data)
+        self.repo.update(moduleid, updated)
+        return ModulePublic(**updated.model_dump())
 
-    def _mask_module(self, module: ModuleInDB) -> ModuleInDB:
-        # Mask sensitive fields if needed (example: if module has secret_key)
-        # If no sensitive fields, just return as is
-        # Example:
-        # module.secret_key = None
-        return module
+    def delete(self, data: ModuleDelete) -> None:
+        """Hapus module berdasarkan ID."""
+        self.repo.remove(data.moduleid)
+
+    def list_modules(self) -> list[ModulePublic]:
+        """Ambil semua module publik."""
+        return [ModulePublic(**m.model_dump()) for m in self.repo.all()]
