@@ -43,3 +43,10 @@ class EntityAlreadyExistsError(AppExceptionError):
 
     default_message = "Entity already exists."
     status_code = 409
+
+
+class AuthError(AppExceptionError):
+    """Exception raised for authentication errors."""
+
+    default_message = "Authentication error occurred."
+    status_code = 401
