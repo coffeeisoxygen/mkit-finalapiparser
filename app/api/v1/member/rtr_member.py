@@ -1,4 +1,4 @@
-# app/routers/router_member.py
+from fastapi import APIRouter
 
 from app.deps.deps_service import DepMemberService
 from app.schemas.sch_member import (
@@ -7,9 +7,8 @@ from app.schemas.sch_member import (
     MemberPublic,
     MemberUpdate,
 )
-from fastapi import APIRouter
 
-router = APIRouter(prefix="/members", tags=["Member"])
+router = APIRouter()
 
 
 @router.post("/", response_model=MemberPublic)
