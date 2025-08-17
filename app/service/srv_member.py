@@ -1,40 +1,93 @@
-"""Service layer untuk Member."""
-
+from app.custom.cst_exceptions import EntityAlreadyExistsError, EntityNotFoundError
+from app.mlogg import logger
 from app.repositories.rep_member import InMemoryMemberRepository
 from app.schemas.sch_member import (
     MemberCreate,
     MemberDelete,
+    MemberInDB,
     MemberPublic,
     MemberUpdate,
 )
 
+PREFIX_MEMBER = "MEM"
+
 
 class MemberService:
-    """Business logic untuk Member."""
+    """Service layer untuk member (business logic)."""
 
     def __init__(self, repo: InMemoryMemberRepository):
         self.repo = repo
+        self._counter = 0
 
-    def register(self, data: MemberCreate) -> MemberPublic:
-        """Register member baru."""
-        member = self.repo.create(data)
-        return MemberPublic(**member.model_dump())
+    def _next_id(self) -> str:
+        """Generate memberid baru dengan format MEM###."""
+        self._counter += 1
+        return f"{PREFIX_MEMBER}{str(self._counter).zfill(3)}"
 
-    def update(self, memberid: str, data: MemberUpdate) -> MemberPublic:
-        """Update member."""
+    # CREATE
+    def create_member(self, data: MemberCreate) -> MemberPublic:
+        memberid = self._next_id()
+        log = logger.bind(operation="create_member", memberid=memberid)
+
+        def _raise_exists():
+            log.error("Member already exists")
+            raise EntityAlreadyExistsError(context={"memberid": memberid})
+
+        try:
+            if self.repo.get(memberid):
+                _raise_exists()
+            member = MemberInDB(
+                memberid=memberid,
+                **data.model_dump(),
+            )
+            self.repo.add(member.memberid, member)
+            log.info("Member created successfully")
+            return MemberPublic(**member.model_dump())
+        except EntityAlreadyExistsError:
+            log.exception("Failed to create member")
+            raise
+
+    # READ
+    def get_member(self, memberid: str) -> MemberPublic | None:
+        log = logger.bind(operation="get_member", memberid=memberid)
         member = self.repo.get(memberid)
-        if not member:
-            raise KeyError(f"Member {memberid} tidak ditemukan.")
+        if member:
+            log.info("Member retrieved")
+            return MemberPublic(**member.model_dump())
+        else:
+            log.error("Member not found")
+            raise EntityNotFoundError(context={"memberid": memberid})
 
-        update_data = data.model_dump(exclude_unset=True)
-        updated = member.model_copy(update=update_data)
+    # UPDATE
+    def update_member(self, memberid: str, data: MemberUpdate) -> MemberPublic:
+        log = logger.bind(operation="update_member", memberid=memberid)
+        existing = self.repo.get(memberid)
+        if not existing:
+            log.error("Member not found for update")
+            raise EntityNotFoundError(context={"memberid": memberid})
+
+        updated_data = existing.model_dump()
+        patch = data.model_dump(exclude_unset=True)
+        updated_data.update(patch)
+
+        updated = MemberInDB(**updated_data)
         self.repo.update(memberid, updated)
+        log.info("Member updated successfully")
         return MemberPublic(**updated.model_dump())
 
-    def delete(self, data: MemberDelete) -> None:
-        """Hapus member berdasarkan ID."""
+    # DELETE
+    def remove_member(self, data: MemberDelete) -> None:
+        log = logger.bind(operation="remove_member", memberid=data.memberid)
+        member = self.repo.get(data.memberid)
+        if not member:
+            log.error("Member not found for deletion")
+            raise EntityNotFoundError(context={"memberid": data.memberid})
         self.repo.remove(data.memberid)
+        log.info("Member removed successfully")
 
+    # LIST
     def list_members(self) -> list[MemberPublic]:
-        """Ambil semua member publik."""
-        return [MemberPublic(**m.model_dump()) for m in self.repo.all()]
+        log = logger.bind(operation="list_members")
+        members = [MemberPublic(**m.model_dump()) for m in self.repo.all()]
+        log.info("Listed all members", count=len(members))
+        return members

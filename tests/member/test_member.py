@@ -1,7 +1,7 @@
+import app.custom.cst_exceptions as exc
 import pytest
-from app.custom.cst_exceptions import EntityExcError
 from app.repositories.rep_member import InMemoryMemberRepository
-from app.schemas.sch_member import MemberCreate, MemberUpdate
+from app.schemas.sch_member import MemberCreate, MemberDelete, MemberUpdate
 from app.service.srv_member import MemberService
 from pydantic import ValidationError
 
@@ -15,7 +15,7 @@ def test_register_member_with_min_length_name(service):
         report_url="http://localhost/reportmin",
         allow_nosign=False,
     )
-    public = service.register(data)
+    public = service.create_member(data)
     assert public.name == "A"
 
 
@@ -29,7 +29,7 @@ def test_register_member_with_max_length_name(service):
         report_url="http://localhost/reportmax",
         allow_nosign=False,
     )
-    public = service.register(data)
+    public = service.create_member(data)
     assert public.name == long_name
 
 
@@ -43,7 +43,7 @@ def test_register_member_with_invalid_ip(service):
             report_url="http://localhost/reportip",
             allow_nosign=False,
         )
-        service.register(data)
+        service.create_member(data)
 
 
 def test_register_member_with_invalid_url(service):
@@ -56,7 +56,7 @@ def test_register_member_with_invalid_url(service):
             report_url="not_a_url",  # invalid URL
             allow_nosign=False,
         )
-        service.register(data)
+        service.create_member(data)
 
 
 def test_register_member_with_short_pin(service):
@@ -69,20 +69,20 @@ def test_register_member_with_short_pin(service):
             report_url="http://localhost/reportpin",
             allow_nosign=False,
         )
-        service.register(data)
+        service.create_member(data)
 
 
 def test_register_member_with_special_char_in_name(service):
     data = MemberCreate(
-        name="Name!@#",  # allowed, but memberid will be sanitized
+        name="Name!@#",  # allowed
         pin="123456",
         password="password123",
         ipaddress="192.168.1.14",
         report_url="http://localhost/reportspecial",
         allow_nosign=False,
     )
-    public = service.register(data)
-    assert public.memberid.startswith("MKIT")
+    public = service.create_member(data)
+    assert public.memberid.startswith("MEM")
 
 
 # pyright: reportArgumentType= false
@@ -94,7 +94,7 @@ def service():
     return MemberService(repo)
 
 
-def test_register_and_get_member(service: MemberService):
+def test_register_and_list_member(service: MemberService):
     data = MemberCreate(
         name="John Doe",
         pin="123456",
@@ -104,13 +104,12 @@ def test_register_and_get_member(service: MemberService):
         allow_nosign=False,
     )
 
-    public = service.register(data)
+    public = service.create_member(data)
     assert public.name == "John Doe"
-    assert public.memberid.startswith("MKIT")
+    assert public.memberid.startswith("MEM")
 
-    fetched = service.get(public.memberid)
-    assert fetched is not None
-    assert fetched.name == "John Doe"
+    members = service.list_members()
+    assert any(m.name == "John Doe" for m in members)
 
 
 def test_update_member(service: MemberService):
@@ -122,9 +121,9 @@ def test_update_member(service: MemberService):
         report_url="http://localhost/report2",
         allow_nosign=True,
     )
-    public = service.register(data)
+    public = service.create_member(data)
     update = MemberUpdate(name="Jane Updated")
-    updated = service.update(public.memberid, update)
+    updated = service.update_member(public.memberid, update)
     assert updated.name == "Jane Updated"
 
 
@@ -137,10 +136,11 @@ def test_remove_member(service: MemberService):
         report_url="http://localhost/report3",
         allow_nosign=False,
     )
-    public = service.register(data)
-    service.remove(public.memberid)
-    with pytest.raises(EntityExcError):
-        service.get(public.memberid)
+    public = service.create_member(data)
+    service.remove_member(MemberDelete(memberid=public.memberid))
+
+    with pytest.raises(exc.EntityNotFoundError):
+        service.get_member(public.memberid)
 
 
 def test_register_member_with_empty_fields(service: MemberService):
@@ -153,4 +153,4 @@ def test_register_member_with_empty_fields(service: MemberService):
             report_url="",
             allow_nosign=False,
         )
-        service.register(data)
+        service.create_member(data)

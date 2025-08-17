@@ -31,6 +31,15 @@ class AppExceptionError(Exception):
 # Member Auth Error should Group In Entitiy Error
 
 
-class EntityExcError(AppExceptionError):
-    default_message = "Entity error occurred."
-    status_code = 400
+class EntityNotFoundError(AppExceptionError):
+    """Exception raised when an entity is not found."""
+
+    default_message = "Entity not found."
+    status_code = 404
+
+
+class EntityAlreadyExistsError(AppExceptionError):
+    """Exception raised when an entity already exists."""
+
+    default_message = "Entity already exists."
+    status_code = 409
