@@ -3,7 +3,6 @@ from pathlib import Path
 import pytest
 import yaml
 from app.config import get_settings
-from app.mlogg import logger
 from dotenv import load_dotenv
 
 PATHTOTESTENV = Path(__file__).parent.parent / ".env.test"
@@ -25,25 +24,16 @@ def setup_test_env():
     print(f"Test env loaded app_env={settings.app_env}")
 
 
-@pytest.fixture(autouse=True)
-def intercept_loguru(caplog):
-    handler_id = logger.add(
-        sink=caplog.handler,
-        level="DEBUG",
-        format="<green>{time:YYYY-MM-DD HH:mm:ss}</green> | "
-        "<cyan>{name}</cyan>:<cyan>{function}</cyan>:<cyan>{line}</cyan> - "
-        "<level>{message}</level>",
-        enqueue=False,
-    )
-    yield
-    logger.remove(handler_id)
+# --- INSTRUKSI SETUP FIXTURE DATA ---
+# Pastikan folder 'tests/data' sudah dibuat dan file YAML seperti 'members_valid.yaml' tersedia di sana.
+# Contoh: tests/data/members_valid.yaml
 
 
-# fixture file untuk test
 @pytest.fixture(scope="session")
 def test_file_path():
-    """Fixture untuk memberikan path ke file yang akan di-load dalam test."""
-    return Path(__file__).parent / "data"
+    """Fixture untuk memberikan path ke folder data test secara robust."""
+    # Path selalu relatif terhadap root project
+    return Path(__file__).parent.resolve() / "data"
 
 
 @pytest.fixture(scope="session")
