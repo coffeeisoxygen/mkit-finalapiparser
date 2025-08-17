@@ -37,14 +37,13 @@ class Settings(BaseSettings):
         case_sensitive=False,
     )
 
-    app_env: EnvironmentEnums = EnvironmentEnums.PRODUCTION
-    app_debug: bool = False
-    app_name: str = "MKIT_WRAPPER"
-    app_version: str = version
-    app_admin_username: str = "admin"
-    app_admin_password: str = (
-        "$2y$10$C27B4x5BCDuz2D0leU8K7.OhBZ5joc8GR3owPRMz2YNODK2QDzr12"
-    )
+    APP_ENV: EnvironmentEnums = EnvironmentEnums.PRODUCTION
+    APP_DEBUG: bool = False
+    APP_NAME: str = "MKIT_WRAPPER"
+    APP_VERSION: str = version
+    JWT_SECRET_KEY: str
+    JWT_ALGORITHM: str
+    JWT_ACCESS_TOKEN_EXPIRE_MINUTES: int
 
 
 @lru_cache
