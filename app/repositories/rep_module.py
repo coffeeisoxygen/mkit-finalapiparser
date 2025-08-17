@@ -1,9 +1,5 @@
-"""In-memory repository untuk Module."""
-
 from app.repositories.base_repo import AbstractRepository
-from app.schemas.sch_module import ModuleCreate, ModuleInDB
-
-PREFIX_MODULE = "MOD"
+from app.schemas.sch_module import ModuleInDB
 
 
 class InMemoryModuleRepository(AbstractRepository[ModuleInDB, str]):
@@ -11,18 +7,11 @@ class InMemoryModuleRepository(AbstractRepository[ModuleInDB, str]):
 
     def __init__(self):
         self._data: dict[str, ModuleInDB] = {}
-        self._counter: int = 0  # buat generate sequence
 
-    def _next_id(self) -> str:
-        """Generate moduleid baru dengan format MOD###."""
-        self._counter += 1
-        return f"{PREFIX_MODULE}{str(self._counter).zfill(3)}"
-
-    def create(self, data: ModuleCreate) -> ModuleInDB:
-        """Generate ID dan simpan module baru dari DTO."""
-        module = ModuleInDB(moduleid=self._next_id(), **data.model_dump())
-        self._data[module.moduleid] = module
-        return module
+    def add(self, key: str, entity: ModuleInDB) -> None:
+        if key in self._data:
+            raise ValueError(f"Module {key} sudah ada.")
+        self._data[key] = entity
 
     def get(self, key: str) -> ModuleInDB | None:
         return self._data.get(key)

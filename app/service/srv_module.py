@@ -1,42 +1,95 @@
 """module service logic."""
 
+from app.custom.cst_exceptions import EntityAlreadyExistsError, EntityNotFoundError
+from app.mlogg import logger
 from app.repositories.rep_module import InMemoryModuleRepository
 from app.schemas.sch_module import (
     ModuleCreate,
     ModuleDelete,
+    ModuleInDB,
     ModulePublic,
     ModuleUpdate,
 )
 
+PREFIX_MODULE = "MOD"
+
 
 class ModuleService:
-    """Service untuk mengelola module."""
-
-    """Business logic untuk Member."""
+    """Service layer untuk module (business logic)."""
 
     def __init__(self, repo: InMemoryModuleRepository):
         self.repo = repo
+        self._counter = 0
 
-    def register(self, data: ModuleCreate) -> ModulePublic:
-        """Register module baru."""
-        module = self.repo.create(data)
-        return ModulePublic(**module.model_dump())
+    def _next_id(self) -> str:
+        """Generate moduleid baru dengan format MOD###."""
+        self._counter += 1
+        return f"{PREFIX_MODULE}{str(self._counter).zfill(3)}"
 
-    def update(self, moduleid: str, data: ModuleUpdate) -> ModulePublic:
-        """Update module."""
+    # CREATE
+    def create_module(self, data: ModuleCreate) -> ModulePublic:
+        moduleid = self._next_id()
+        log = logger.bind(operation="create_module", moduleid=moduleid)
+
+        def _raise_exists():
+            log.error("Module already exists")
+            raise EntityAlreadyExistsError(context={"moduleid": moduleid})
+
+        try:
+            if self.repo.get(moduleid):
+                _raise_exists()
+            module = ModuleInDB(
+                moduleid=moduleid,
+                **data.model_dump(),
+            )
+            self.repo.add(module.moduleid, module)
+            log.info("Module created successfully")
+            return ModulePublic(**module.model_dump())
+        except EntityAlreadyExistsError:
+            log.exception("Failed to create module")
+            raise
+
+    # READ
+    def get_module(self, moduleid: str) -> ModulePublic | None:
+        log = logger.bind(operation="get_module", moduleid=moduleid)
         module = self.repo.get(moduleid)
-        if not module:
-            raise KeyError(f"Module {moduleid} tidak ditemukan.")
+        if module:
+            log.info("Module retrieved")
+            return ModulePublic(**module.model_dump())
+        else:
+            log.error("Module not found")
+            raise EntityNotFoundError(context={"moduleid": moduleid})
 
-        update_data = data.model_dump(exclude_unset=True)
-        updated = module.model_copy(update=update_data)
+    # UPDATE
+    def update_module(self, moduleid: str, data: ModuleUpdate) -> ModulePublic:
+        log = logger.bind(operation="update_module", moduleid=moduleid)
+        existing = self.repo.get(moduleid)
+        if not existing:
+            log.error("Module not found for update")
+            raise EntityNotFoundError(context={"moduleid": moduleid})
+
+        updated_data = existing.model_dump()
+        patch = data.model_dump(exclude_unset=True)
+        updated_data.update(patch)
+
+        updated = ModuleInDB(**updated_data)
         self.repo.update(moduleid, updated)
+        log.info("Module updated successfully")
         return ModulePublic(**updated.model_dump())
 
-    def delete(self, data: ModuleDelete) -> None:
-        """Hapus module berdasarkan ID."""
+    # DELETE
+    def remove_module(self, data: ModuleDelete) -> None:
+        log = logger.bind(operation="remove_module", moduleid=data.moduleid)
+        module = self.repo.get(data.moduleid)
+        if not module:
+            log.error("Module not found for deletion")
+            raise EntityNotFoundError(context={"moduleid": data.moduleid})
         self.repo.remove(data.moduleid)
+        log.info("Module removed successfully")
 
+    # LIST
     def list_modules(self) -> list[ModulePublic]:
-        """Ambil semua module publik."""
-        return [ModulePublic(**m.model_dump()) for m in self.repo.all()]
+        log = logger.bind(operation="list_modules")
+        modules = [ModulePublic(**m.model_dump()) for m in self.repo.all()]
+        log.info("Listed all modules", count=len(modules))
+        return modules

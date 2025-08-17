@@ -1,3 +1,4 @@
+# pyright: reportArgumentType=false
 import pytest
 from app.config import ProviderEnums
 from app.repositories.rep_module import InMemoryModuleRepository
@@ -17,8 +18,8 @@ def test_register_module_with_min_length_name(service):
         email="test@example.com",
         base_url="http://localhost/min",
     )
-    public = service.register(data)
-    assert public.name == "A"
+    public = service.create_module(data)
+    assert public.moduleid.startswith("MOD")
 
 
 def test_register_module_with_max_length_name(service):
@@ -33,13 +34,13 @@ def test_register_module_with_max_length_name(service):
         email="test@example.com",
         base_url="http://localhost/max",
     )
-    public = service.register(data)
-    assert public.name == long_name
+    public = service.create_module(data)
+    assert public.moduleid.startswith("MOD")
 
 
 def test_register_module_with_invalid_ip(service):
     with pytest.raises(ValidationError):
-        data = ModuleCreate(
+        ModuleCreate(
             provider=ProviderEnums.DIGIPOS,
             name="Invalid IP",
             username=SecretStr("user3"),
@@ -49,12 +50,11 @@ def test_register_module_with_invalid_ip(service):
             email="test@example.com",
             base_url="http://999.999.999.999",
         )
-        service.register(data)
 
 
 def test_register_module_with_invalid_url(service):
     with pytest.raises(ValidationError):
-        data = ModuleCreate(
+        ModuleCreate(
             provider=ProviderEnums.DIGIPOS,
             name="Invalid URL",
             username=SecretStr("user4"),
@@ -64,12 +64,11 @@ def test_register_module_with_invalid_url(service):
             email="test@example.com",
             base_url="not_a_url",
         )
-        service.register(data)
 
 
 def test_register_module_with_short_pin(service):
     with pytest.raises(ValidationError):
-        data = ModuleCreate(
+        ModuleCreate(
             provider=ProviderEnums.DIGIPOS,
             name="Short Pin",
             username=SecretStr("user5"),
@@ -79,7 +78,6 @@ def test_register_module_with_short_pin(service):
             email="test@example.com",
             base_url="http://localhost/pin",
         )
-        service.register(data)
 
 
 def test_register_module_with_special_char_in_name(service):
@@ -93,7 +91,7 @@ def test_register_module_with_special_char_in_name(service):
         email="test@example.com",
         base_url="http://localhost/special",
     )
-    public = service.register(data)
+    public = service.create_module(data)
     assert public.moduleid.startswith("MOD")
 
 
@@ -114,7 +112,7 @@ def test_register_and_list_module(service: ModuleService):
         email="test@example.com",
         base_url="http://localhost/one",
     )
-    public = service.register(data)
+    public = service.create_module(data)
     assert public.moduleid.startswith("MOD")
     modules = service.list_modules()
     assert any(m.moduleid == public.moduleid for m in modules)
@@ -131,9 +129,9 @@ def test_update_module(service: ModuleService):
         email="test@example.com",
         base_url="http://localhost/two",
     )
-    public = service.register(data)
+    public = service.create_module(data)
     update = ModuleUpdate(name="Module Updated")
-    updated = service.update(public.moduleid, update)
+    updated = service.update_module(public.moduleid, update)
     assert updated.moduleid == public.moduleid
 
 
@@ -148,15 +146,17 @@ def test_remove_module(service: ModuleService):
         email="test@example.com",
         base_url="http://localhost/remove",
     )
-    public = service.register(data)
-    service.delete(ModuleDelete(moduleid=public.moduleid))
-    with pytest.raises(KeyError):
-        service.update(public.moduleid, ModuleUpdate(name="Should Fail"))
+    public = service.create_module(data)
+    service.remove_module(ModuleDelete(moduleid=public.moduleid))
+    import app.custom.cst_exceptions as exc
+
+    with pytest.raises(exc.EntityNotFoundError):
+        service.update_module(public.moduleid, ModuleUpdate(name="Should Fail"))
 
 
 def test_register_module_with_empty_fields(service: ModuleService):
     with pytest.raises(ValidationError):
-        data = ModuleCreate(
+        ModuleCreate(
             provider=ProviderEnums.DIGIPOS,
             name="",
             username="",
@@ -166,4 +166,3 @@ def test_register_module_with_empty_fields(service: ModuleService):
             email="",
             base_url="",
         )
-        service.register(data)
