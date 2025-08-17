@@ -1,18 +1,31 @@
 from fastapi.concurrency import asynccontextmanager
 
+from app.repositories.rep_member import InMemoryMemberRepository
+from app.repositories.rep_module import InMemoryModuleRepository
 from mlogg import init_logging, logger
 
 
 @asynccontextmanager
-async def app_lifespan(app):  # noqa: ANN001, ARG001, RUF029
+async def app_lifespan(app):  # noqa: ANN001, RUF029
     """Lifespan context manager for the FastAPI application."""
     try:
         init_logging()
         logger.info("Application starting up")
-
+        # Initialize repositories and attach to app.state
+        with logger.contextualize(repo="member_repo"):
+            app.state.member_repo = InMemoryMemberRepository()
+            logger.info("Member repository initialized")
+        with logger.contextualize(repo="module_repo"):
+            app.state.module_repo = InMemoryModuleRepository()
+            logger.info("Module repository initialized")
     except Exception as e:
         logger.error(f"Error during application startup: {e}")
         raise
     yield
-
-    logger.error("Error during application shutdown: ")
+    # cleanup
+    try:
+        app.state.member_repo = None
+        app.state.module_repo = None
+    except Exception as e:
+        logger.error(f"Error during application shutdown: {e}")
+        raise
