@@ -14,10 +14,10 @@ class LoggingMiddleware(BaseHTTPMiddleware):
         headers = dict(request.headers)
         log = logger.bind(
             client_ip=client_ip,
-            user_agent=user_agent,
-            headers=headers,
+            # user_agent=user_agent,
+            # headers=headers,
             method=request.method,
-            url=str(request.url),
+            # url=str(request.url),
         )
         log.info(f"Incoming Request: {request.method} {request.url.path}")
 
