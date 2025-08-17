@@ -1,0 +1,20 @@
+# Data Member Sample, Pastikan data yg di input sesuai dengan credentials
+
+members:
+  - memberid: OTOTEST1
+    name: otomax utama untuk testing dengan sign
+    pin: 777999
+    password: secret123
+    ipaddress: 192.168.1.1
+    report_url: http://192.168.1.1:8080/report
+    is_active: true
+    allow_nosign: false
+
+  - memberid: OTOTEST1
+    name: otomax utama untuk testing dengan sign
+    pin: 777999
+    password: secret123
+    ipaddress: 192.168.1.1
+    report_url: http://192.168.1.1:8080/report
+    is_active: true
+    allow_nosign: false

@@ -1,0 +1,22 @@
+modules:
+  - moduleid: DIGI01
+    provider: digipos
+    name: XXXX
+    username: XXXXX
+    msisdn: 62xxxxxxxx
+    pin: 123456
+    password: pasxxxxx
+    email: XXXX@gmail.com
+    is_active: true
+    base_url: http://10.0.0.3:10003
+
+  - moduleid: DIGI02
+    provider: isimple
+    name: XXXX
+    username: XXXXX
+    msisdn: 62xxxxxxxx
+    pin: 123456
+    password: pasxxxxx
+    email: XXXX@gmail.com
+    is_active: true
+    base_url: https://localhost:8002
