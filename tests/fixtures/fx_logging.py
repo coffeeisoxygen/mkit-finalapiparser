@@ -3,7 +3,7 @@ from app.mlogg import logger
 
 
 @pytest.fixture(autouse=True)
-def intercept_loguru(caplog):
+def intercept_loguru(caplog: pytest.LogCaptureFixture):
     handler_id = logger.add(
         sink=caplog.handler,
         level="DEBUG",
