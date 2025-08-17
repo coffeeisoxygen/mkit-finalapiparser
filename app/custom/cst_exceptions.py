@@ -50,3 +50,17 @@ class AuthError(AppExceptionError):
 
     default_message = "Authentication error occurred."
     status_code = 401
+
+
+class TokenExpiredError(AuthError):
+    """Exception raised when a token has expired."""
+
+    default_message = "Token has expired."
+    status_code = 401
+
+
+class TokenInvalidError(AuthError):
+    """Exception raised when a token is invalid."""
+
+    default_message = "Token is invalid."
+    status_code = 401

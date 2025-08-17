@@ -10,6 +10,7 @@ dependencies = [
     "loguru>=0.7.3",
     "loguru-config>=0.1.0",
     "pydantic-settings>=2.10.1",
+    "pyjwt>=2.10.1",
 ]
 
 
