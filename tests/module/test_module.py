@@ -1,4 +1,5 @@
 # pyright: reportArgumentType=false
+import app.custom.cst_exceptions as exc
 import pytest
 from app.config import ProviderEnums
 from app.repositories.rep_module import InMemoryModuleRepository
@@ -148,7 +149,6 @@ def test_remove_module(service: ModuleService):
     )
     public = service.create_module(data)
     service.remove_module(ModuleDelete(moduleid=public.moduleid))
-    import app.custom.cst_exceptions as exc
 
     with pytest.raises(exc.EntityNotFoundError):
         service.update_module(public.moduleid, ModuleUpdate(name="Should Fail"))
