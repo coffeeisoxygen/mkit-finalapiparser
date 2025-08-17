@@ -1,67 +1,40 @@
-"""Member service: business logic untuk Member."""
+"""Service layer untuk Member."""
 
-from app.custom.cst_exceptions import EntityExcError
-from app.repositories.base_repo import AbstractRepository
+from app.repositories.rep_member import InMemoryMemberRepository
 from app.schemas.sch_member import (
     MemberCreate,
-    MemberInDB,
+    MemberDelete,
     MemberPublic,
     MemberUpdate,
 )
 
 
 class MemberService:
-    """Service untuk mengelola member."""
+    """Business logic untuk Member."""
 
-    def __init__(self, repo: AbstractRepository[MemberInDB, str]):
+    def __init__(self, repo: InMemoryMemberRepository):
         self.repo = repo
 
     def register(self, data: MemberCreate) -> MemberPublic:
-        """Daftarkan member baru."""
-        nomor_urut = len(self.repo.all()) + 1
-        memberid = f"MKIT{str(nomor_urut).zfill(3)}"
-        if self.repo.get(memberid):
-            raise EntityExcError(f"Member dengan ID {memberid} sudah terdaftar.")
-        member = MemberInDB(
-            memberid=memberid,
-            name=data.name,
-            pin=data.pin,
-            password=data.password,
-            ipaddress=data.ipaddress,
-            report_url=data.report_url,
-            allow_nosign=data.allow_nosign,
-            is_active=True,
-        )
-        self.repo.add(member.memberid, member)
-        return MemberPublic(**member.model_dump(exclude={"pin", "password"}))
-
-    def get(self, memberid: str) -> MemberPublic | None:
-        """Ambil member by id."""
-        m = self.repo.get(memberid)
-        if not m:
-            raise EntityExcError(f"Member dengan ID {memberid} tidak ditemukan.")
-        return MemberPublic(**m.model_dump(exclude={"pin", "password"}))
-
-    def list_members(self) -> list[MemberPublic]:
-        """Ambil semua member."""
-        return [
-            MemberPublic(**m.model_dump(exclude={"pin", "password"}))
-            for m in self.repo.all()
-        ]
+        """Register member baru."""
+        member = self.repo.create(data)
+        return MemberPublic(**member.model_dump())
 
     def update(self, memberid: str, data: MemberUpdate) -> MemberPublic:
-        """Update data member."""
+        """Update member."""
         member = self.repo.get(memberid)
         if not member:
-            raise EntityExcError(f"Member dengan ID {memberid} tidak ditemukan.")
+            raise KeyError(f"Member {memberid} tidak ditemukan.")
 
-        updated_data = member.model_copy(update=data.model_dump(exclude_unset=True))
-        self.repo.update(memberid, updated_data)
-        return MemberPublic(**updated_data.model_dump(exclude={"pin", "password"}))
+        update_data = data.model_dump(exclude_unset=True)
+        updated = member.model_copy(update=update_data)
+        self.repo.update(memberid, updated)
+        return MemberPublic(**updated.model_dump())
 
-    def remove(self, memberid: str) -> None:
-        """Hapus member."""
-        member = self.repo.get(memberid)
-        if not member:
-            raise EntityExcError(f"Member dengan ID {memberid} tidak ditemukan.")
-        self.repo.remove(memberid)
+    def delete(self, data: MemberDelete) -> None:
+        """Hapus member berdasarkan ID."""
+        self.repo.remove(data.memberid)
+
+    def list_members(self) -> list[MemberPublic]:
+        """Ambil semua member publik."""
+        return [MemberPublic(**m.model_dump()) for m in self.repo.all()]

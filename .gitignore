@@ -64,3 +64,4 @@ user_info.json
 
 # generated
 *.hypothesis/
+.github/

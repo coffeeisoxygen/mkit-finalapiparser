@@ -1,7 +1,9 @@
 """In-memory repository untuk Member."""
 
 from app.repositories.base_repo import AbstractRepository
-from app.schemas.sch_member import MemberInDB
+from app.schemas.sch_member import MemberCreate, MemberInDB
+
+PREFIX_MEMBER = "MEM"
 
 
 class InMemoryMemberRepository(AbstractRepository[MemberInDB, str]):
@@ -9,11 +11,18 @@ class InMemoryMemberRepository(AbstractRepository[MemberInDB, str]):
 
     def __init__(self):
         self._data: dict[str, MemberInDB] = {}
+        self._counter: int = 0  # buat generate sequence
 
-    def add(self, key: str, entity: MemberInDB) -> None:
-        if key in self._data:
-            raise ValueError(f"Member {key} sudah ada.")
-        self._data[key] = entity
+    def _next_id(self) -> str:
+        """Generate memberid baru dengan format MEM###."""
+        self._counter += 1
+        return f"{PREFIX_MEMBER}{str(self._counter).zfill(3)}"
+
+    def create(self, data: MemberCreate) -> MemberInDB:
+        """Generate ID dan simpan member baru dari DTO."""
+        member = MemberInDB(memberid=self._next_id(), **data.model_dump())
+        self._data[member.memberid] = member
+        return member
 
     def get(self, key: str) -> MemberInDB | None:
         return self._data.get(key)
