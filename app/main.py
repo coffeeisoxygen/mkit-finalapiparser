@@ -1,11 +1,14 @@
 import uvicorn
 from fastapi import FastAPI
 
+from app.api import register_routers
 from app.custom.cst_lifespan import app_lifespan
 from app.custom.cst_middleware import LoggingMiddleware
 
 app = FastAPI(lifespan=app_lifespan)
 app.add_middleware(LoggingMiddleware)
+
+register_routers(app)
 
 
 @app.get("/")
