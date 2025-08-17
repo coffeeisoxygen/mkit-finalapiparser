@@ -41,7 +41,8 @@ class Settings(BaseSettings):
     app_debug: bool = False
     app_name: str = "MKIT_WRAPPER"
     app_version: str = version
-    config_path: str
+    app_admin_username: str = "admin"
+    app_admin_password: str = "admin"
 
 
 @lru_cache
