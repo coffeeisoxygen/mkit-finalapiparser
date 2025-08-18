@@ -4,11 +4,11 @@ from fastapi.responses import JSONResponse
 
 from app.api import register_routers
 from app.custom.cst_cors import setup_cors
-from app.custom.cst_exceptions import (
-    AppExceptionError,
-)
 from app.custom.cst_lifespan import app_lifespan
 from app.custom.cst_middleware import LoggingMiddleware
+from app.custom.exceptions.cst_exceptions import (
+    AppExceptionError,
+)
 
 app = FastAPI(lifespan=app_lifespan)
 app.add_middleware(LoggingMiddleware)

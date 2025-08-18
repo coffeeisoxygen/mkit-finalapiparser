@@ -1,6 +1,9 @@
 """module service logic."""
 
-from app.custom.cst_exceptions import EntityAlreadyExistsError, EntityNotFoundError
+from app.custom.exceptions.cst_exceptions import (
+    EntityAlreadyExistsError,
+    EntityNotFoundError,
+)
 from app.mlogg import logger
 from app.repositories.rep_module import InMemoryModuleRepository
 from app.schemas.sch_module import (

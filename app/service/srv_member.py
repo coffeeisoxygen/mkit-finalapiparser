@@ -1,4 +1,7 @@
-from app.custom.cst_exceptions import EntityAlreadyExistsError, EntityNotFoundError
+from app.custom.exceptions.cst_exceptions import (
+    EntityAlreadyExistsError,
+    EntityNotFoundError,
+)
 from app.mlogg import logger
 from app.repositories.rep_member import InMemoryMemberRepository
 from app.schemas.sch_member import (
@@ -29,34 +32,28 @@ class MemberService:
         memberid = self._next_id()
         log = logger.bind(operation="create_member", memberid=memberid)
 
-        def _raise_exists():
+        # check duplicate
+        if self.repo.get(memberid):
             log.error("Member already exists")
             raise EntityAlreadyExistsError(context={"memberid": memberid})
 
-        try:
-            if self.repo.get(memberid):
-                _raise_exists()
-            member = MemberInDB(
-                memberid=memberid,
-                **data.model_dump(),
-            )
-            self.repo.add(member.memberid, member)
-            log.info("Member created successfully")
-            return MemberPublic(**member.model_dump())
-        except EntityAlreadyExistsError:
-            log.exception("Failed to create member")
-            raise
+        member = MemberInDB(
+            memberid=memberid,
+            **data.model_dump(),
+        )
+        self.repo.add(member.memberid, member)
+        log.info("Member created successfully")
+        return MemberPublic(**member.model_dump())
 
     # READ
-    def get_member(self, memberid: str) -> MemberPublic | None:
+    def get_member(self, memberid: str) -> MemberPublic:
         log = logger.bind(operation="get_member", memberid=memberid)
         member = self.repo.get(memberid)
-        if member:
-            log.info("Member retrieved")
-            return MemberPublic(**member.model_dump())
-        else:
+        if not member:
             log.error("Member not found")
             raise EntityNotFoundError(context={"memberid": memberid})
+        log.info("Member retrieved")
+        return MemberPublic(**member.model_dump())
 
     # UPDATE
     def update_member(self, memberid: str, data: MemberUpdate) -> MemberPublic:

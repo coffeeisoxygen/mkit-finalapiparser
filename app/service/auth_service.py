@@ -2,7 +2,11 @@ from datetime import UTC, datetime, timedelta
 
 import jwt
 
-from app.custom.cst_exceptions import AuthError, TokenExpiredError, TokenInvalidError
+from app.custom.exceptions.cst_exceptions import (
+    AuthError,
+    TokenExpiredError,
+    TokenInvalidError,
+)
 from app.mlogg import logger
 from app.repositories.rep_user import UserRepository
 from app.schemas.sch_user import UserInDB
