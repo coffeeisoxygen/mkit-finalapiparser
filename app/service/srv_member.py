@@ -23,6 +23,13 @@ class MemberService:
 
     # CREATE
     def create_member(self, data: MemberCreate) -> MemberPublic:
+        # Check for duplicate name
+        for member in self.repo.all():
+            if member.name == data.name:
+                raise EntityAlreadyExistsError(
+                    f"Member with name '{data.name}' already exists"
+                )
+
         memberid = self._next_id()
         log = logger.bind(operation="create_member", memberid=memberid)
 
