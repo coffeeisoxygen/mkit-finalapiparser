@@ -1,7 +1,7 @@
+# app/db/session.py
 import contextlib
 from collections.abc import AsyncIterator
 
-from loguru import logger
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.ext.asyncio import (
     AsyncConnection,
@@ -13,58 +13,69 @@ from sqlalchemy.ext.asyncio import (
 
 from app.config import get_settings
 from app.custom.exceptions import ServiceError
+from app.mlogg import logger
 
 settings = get_settings()
 
 
 class DatabaseSessionManager:
-    def __init__(self, host: str):
-        self.engine: AsyncEngine | None = create_async_engine(host)
-        self._sessionmaker: async_sessionmaker[AsyncSession] = async_sessionmaker(
-            autocommit=False, bind=self.engine
-        )
+    """Manages async database connections and sessions."""
 
-    async def close(self):
-        if self.engine is None:
-            raise ServiceError
-        await self.engine.dispose()
-        self.engine = None
-        self._sessionmaker = None  # type: ignore
+    def __init__(self, db_url: str):
+        self.engine: AsyncEngine | None = create_async_engine(db_url, echo=False)
+        self._sessionmaker: async_sessionmaker[AsyncSession] = async_sessionmaker(
+            self.engine, expire_on_commit=False
+        )
+        logger.debug("DatabaseSessionManager initialized")
+
+    async def close(self) -> None:
+        """Dispose engine and reset sessionmaker."""
+        if self.engine:
+            await self.engine.dispose()
+            self.engine = None
+            self._sessionmaker = None  # type: ignore
+            logger.debug("Database engine disposed")
 
     @contextlib.asynccontextmanager
     async def connect(self) -> AsyncIterator[AsyncConnection]:
+        """Provide an async connection."""
         if self.engine is None:
-            raise ServiceError
+            raise ServiceError("Database engine is not initialized")
 
-        async with self.engine.begin() as connection:
+        async with self.engine.connect() as connection:
             try:
                 yield connection
-            except SQLAlchemyError:
+            except SQLAlchemyError as e:
                 await connection.rollback()
-                logger.error("Connection error occurred")
-                raise ServiceError
+                logger.error(f"Connection error occurred: {e}")
+                raise ServiceError from e
 
     @contextlib.asynccontextmanager
     async def session(self) -> AsyncIterator[AsyncSession]:
+        """Provide an async session with rollback & close handling."""
         if not self._sessionmaker:
             logger.error("Sessionmaker is not available")
-            raise ServiceError
+            raise ServiceError("Sessionmaker is not available")
 
-        session = self._sessionmaker()
-        try:
-            yield session
-        except SQLAlchemyError as e:
-            await session.rollback()
-            logger.error(f"Session error could not be established {e}")
-            raise ServiceError
-        finally:
-            await session.close()
+        async with self._sessionmaker() as session:
+            try:
+                yield session
+                await session.commit()
+            except SQLAlchemyError as e:
+                await session.rollback()
+                logger.error(f"Session error: {e}")
+                raise ServiceError from e
+            except Exception as e:
+                await session.rollback()
+                logger.error(f"Unexpected session error: {e}")
+                raise ServiceError from e
 
 
+# Singleton instance for FastAPI
 sessionmanager = DatabaseSessionManager(settings.DB_URL)
 
 
-async def get_db_session():
-    """FastAPI Dependency, to use db session."""
+async def get_db_session() -> AsyncIterator[AsyncSession]:
+    """FastAPI dependency to yield a database session."""
     async with sessionmanager.session() as session:
         yield session

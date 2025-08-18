@@ -28,7 +28,11 @@ class MemberInDB(MemberBase):
     pin: SecretStr = Field(..., description="PIN untuk member", min_length=6)
     password: SecretStr = Field(..., description="Password untuk member", min_length=6)
 
-    model_config = ConfigDict(extra="forbid", populate_by_name=True)
+    model_config = ConfigDict(
+        extra="forbid",
+        populate_by_name=True,
+        from_attributes=True,  # enable ORM mode
+    )
 
     @classmethod
     def from_create(cls, memberid: str, data: "MemberCreate") -> "MemberInDB":
@@ -74,6 +78,10 @@ class MemberUpdate(BaseModel):
     ipaddress: IPvAnyAddress | None = None
     report_url: AnyHttpUrl | None = None
     allow_nosign: bool | None = None
+
+    model_config = ConfigDict(
+        from_attributes=True,  # enable ORM mode
+    )
 
     @field_validator(
         "name", "pin", "password", "ipaddress", "report_url", mode="before"
