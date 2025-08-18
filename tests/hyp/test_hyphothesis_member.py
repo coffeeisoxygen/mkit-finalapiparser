@@ -1,16 +1,10 @@
+import app.custom.exceptions as exc
 import pytest
 from app.repositories.rep_member import AsyncInMemoryMemberRepo
 from app.schemas.sch_member import MemberCreate, MemberDelete, MemberUpdate
 from app.service.srv_member import MemberService
 from hypothesis import given
 from hypothesis import strategies as st
-
-
-@pytest.fixture
-def service():
-    repo = AsyncInMemoryMemberRepo()
-    return MemberService(repo)
-
 
 # strategi generate data untuk member
 name_strategy = st.text(min_size=1, max_size=50)
@@ -31,8 +25,9 @@ allow_nosign_strategy = st.just(False)
 )
 @pytest.mark.asyncio
 async def test_create_and_get_member(
-    service, name, pin, password, ipaddress, report_url, allow_nosign
+    name, pin, password, ipaddress, report_url, allow_nosign
 ):
+    service = MemberService(AsyncInMemoryMemberRepo())
     data = MemberCreate(
         name=name,
         pin=pin,
@@ -58,9 +53,8 @@ async def test_create_and_get_member(
     allow_nosign=allow_nosign_strategy,
 )
 @pytest.mark.asyncio
-async def test_update_member(
-    service, name, pin, password, ipaddress, report_url, allow_nosign
-):
+async def test_update_member(name, pin, password, ipaddress, report_url, allow_nosign):
+    service = MemberService(AsyncInMemoryMemberRepo())
     # create dulu
     created = await service.create_member(
         MemberCreate(
@@ -87,9 +81,8 @@ async def test_update_member(
     allow_nosign=allow_nosign_strategy,
 )
 @pytest.mark.asyncio
-async def test_delete_member(
-    service, name, pin, password, ipaddress, report_url, allow_nosign
-):
+async def test_delete_member(name, pin, password, ipaddress, report_url, allow_nosign):
+    service = MemberService(AsyncInMemoryMemberRepo())
     # create
     created = await service.create_member(
         MemberCreate(
@@ -106,5 +99,5 @@ async def test_delete_member(
     await service.remove_member(MemberDelete(memberid=created.memberid))
 
     # pastikan not found
-    with pytest.raises(Exception):
+    with pytest.raises(exc.EntityNotFoundError):
         await service.get_member(created.memberid)
