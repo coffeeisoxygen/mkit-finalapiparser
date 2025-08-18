@@ -21,6 +21,7 @@ async def app_lifespan(app):  # noqa: ANN001, RUF029
             logger.info("Module repository initialized")
         with logger.contextualize(repo="auth_repo"):
             app.state.auth_repo = UserRepository()
+            logger.info("User repository initialized")
     except Exception as e:
         logger.error(f"Error during application startup: {e}")
         raise

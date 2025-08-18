@@ -7,7 +7,7 @@ from app.deps.deps_auth import DepAuthService
 from app.deps.security import get_current_active_user
 from app.schemas.sch_user import Token, User
 
-router = APIRouter(prefix="/user", tags=["user"])
+router = APIRouter()
 
 
 @router.post(
@@ -41,7 +41,7 @@ async def login_for_access_token(
     return Token(access_token=access_token, token_type="bearer")
 
 
-@router.get("/users/me/", response_model=User)
+@router.get("/me/", response_model=User)
 async def read_users_me(
     current_user: Annotated[User, Depends(get_current_active_user)],
 ):

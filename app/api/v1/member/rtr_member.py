@@ -12,6 +12,23 @@ from app.schemas.sch_member import (
 router = APIRouter()
 
 
+@router.get("/{memberid}", response_model=MemberPublic)
+def get_member(
+    memberid: str,
+    service: DepMemberService,
+):
+    """Ambil member by ID."""
+    return service.get_member(memberid)
+
+
+@router.get("/", response_model=list[MemberPublic])
+def list_members(
+    service: DepMemberService,
+):
+    """Ambil semua member."""
+    return service.list_members()
+
+
 @router.post("/", response_model=MemberPublic)
 def create_member(
     data: MemberCreate,
@@ -26,15 +43,6 @@ def create_member(
     return result
 
 
-@router.get("/{memberid}", response_model=MemberPublic)
-def get_member(
-    memberid: str,
-    service: DepMemberService,
-):
-    """Ambil member by ID."""
-    return service.get_member(memberid)
-
-
 @router.put("/{memberid}", response_model=MemberPublic)
 def update_member(
     memberid: str,
@@ -45,19 +53,11 @@ def update_member(
     return service.update_member(memberid, data)
 
 
-@router.delete("/", status_code=204)
+@router.delete("/{memberid}", status_code=204)
 def remove_member(
-    data: MemberDelete,
+    memberid: str,
     service: DepMemberService,
 ):
-    """Hapus member."""
-    service.remove_member(data)
+    """Hapus member by ID."""
+    service.remove_member(MemberDelete(memberid=memberid))
     return None
-
-
-@router.get("/", response_model=list[MemberPublic])
-def list_members(
-    service: DepMemberService,
-):
-    """Ambil semua member."""
-    return service.list_members()

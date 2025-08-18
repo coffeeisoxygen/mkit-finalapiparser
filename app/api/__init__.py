@@ -18,18 +18,18 @@ def register_routers(app):  # noqa: ANN001
     """
     app.include_router(
         member_router,
-        prefix="/api/v1",
+        prefix="/api/v1/member",
         tags=["Member"],
         dependencies=[Depends(get_current_user)],
     )
     app.include_router(
         module_router,
-        prefix="/api/v1",
+        prefix="/api/v1/module",
         tags=["Module"],
         dependencies=[Depends(get_current_user)],
     )
     app.include_router(
         user_router,
-        prefix="/api/v1",
+        prefix="/api/v1/user",
         tags=["User"],
     )
