@@ -2,8 +2,8 @@
 # ruff : noqa
 import app.custom.exceptions as exc
 import pytest
-from app.config import ProviderEnums
-from app.repositories.rep_module import InMemoryModuleRepository
+from app.schemas.sch_module import ProviderEnums
+from app.repositories.rep_module import AsyncInMemoryModuleRepo
 from app.schemas.sch_module import ModuleCreate, ModuleDelete, ModuleUpdate
 from app.service.srv_module import ModuleService
 from pydantic import SecretStr, ValidationError
@@ -99,7 +99,7 @@ def test_register_module_with_special_char_in_name(service):
 
 @pytest.fixture
 def service():
-    repo = InMemoryModuleRepository()
+    repo = AsyncInMemoryModuleRepo()
     return ModuleService(repo)
 
 
