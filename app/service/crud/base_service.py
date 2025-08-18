@@ -56,16 +56,17 @@ class BaseService[TCreate, TUpdate, TDelete, TInDB, TPublic](ABC):
 
     # DELETE
     async def remove(self, data: TDelete) -> None:
-        obj = await self.repo.get(data.__dict__[f"{self.prefix.lower()}id"])
+        if hasattr(data, "memberid"):
+            id_field = "memberid"
+        elif hasattr(data, "moduleid"):
+            id_field = "moduleid"
+        else:
+            id_field = f"{self.prefix.lower()}id"
+        obj_id = data.__dict__[id_field]
+        obj = await self.repo.get(obj_id)
         if not obj:
-            raise EntityNotFoundError(
-                context={
-                    f"{self.prefix.lower()}id": data.__dict__[
-                        f"{self.prefix.lower()}id"
-                    ]
-                }
-            )
-        await self.repo.remove(data.__dict__[f"{self.prefix.lower()}id"])
+            raise EntityNotFoundError(context={id_field: obj_id})
+        await self.repo.remove(obj_id)
 
     # LIST
     async def list(self) -> list[TPublic]:
