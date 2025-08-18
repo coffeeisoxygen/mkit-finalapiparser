@@ -4,10 +4,13 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordRequestForm
 
 from app.deps.deps_auth import DepAuthService
-from app.deps.security import get_current_active_user
+from app.deps.deps_security import get_current_active_user
 from app.schemas.sch_user import Token, User
 
-router = APIRouter()
+router = APIRouter(
+    prefix="/api/v1/user",
+    tags=["User"],
+)
 
 
 @router.post(
