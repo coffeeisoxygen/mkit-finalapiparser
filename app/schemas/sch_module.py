@@ -1,7 +1,5 @@
 """schema untuk Module , all thing related hanya di manage oleh admin."""
 
-import re
-
 from pydantic import AnyHttpUrl, BaseModel, EmailStr, Field, SecretStr, field_validator
 
 from app.config import ProviderEnums
@@ -63,45 +61,20 @@ class ModuleCreate(BaseModel):
     provider: ProviderEnums
     name: str
     base_url: AnyHttpUrl
-    username: SecretStr = Field(description="Username untuk module")
-    msisdn: SecretStr = Field(description="MSISDN untuk module")
-    pin: SecretStr = Field(description="PIN untuk module")
-    password: SecretStr = Field(description="Password untuk module")
+    username: str = Field(
+        ...,
+        min_length=1,
+        pattern=r"^[a-zA-Z0-9._-]+$",
+        description="Username untuk module",
+    )
+    msisdn: str = Field(
+        ..., pattern=r"^\+?[1-9]\d{1,14}$", description="MSISDN untuk module"
+    )
+    pin: str = Field(
+        ..., min_length=4, pattern=r"^[0-9]+$", description="PIN untuk module"
+    )
+    password: str = Field(..., min_length=4, description="Password untuk module")
     email: EmailStr | None = Field(description="Email untuk module")
-
-    @field_validator("username", mode="after")
-    @classmethod
-    def validate_username(cls, value: SecretStr) -> SecretStr:
-        val = value.get_secret_value()
-        if not val or len(val) < 1:
-            raise ValueError("Username must be at least 1 character long.")
-        if not re.match(r"^[a-zA-Z0-9._-]+$", val):
-            raise ValueError("Username contains invalid characters.")
-        return value
-
-    @field_validator("msisdn", mode="after")
-    @classmethod
-    def validate_msisdn(cls, value: SecretStr) -> SecretStr:
-        val = value.get_secret_value()
-        if not re.match(r"^\+?[1-9]\d{1,14}$", val):
-            raise ValueError("MSISDN format is invalid.")
-        return value
-
-    @field_validator("pin", mode="after")
-    @classmethod
-    def validate_pin(cls, value: SecretStr) -> SecretStr:
-        val = value.get_secret_value()
-        if len(val) < 4:
-            raise ValueError("PIN must be at least 4 characters long.")
-        return value
-
-    @field_validator("password", mode="after")
-    @classmethod
-    def validate_password(cls, value: SecretStr) -> SecretStr:
-        val = value.get_secret_value()
-        if len(val) < 4:
-            raise ValueError("Password must be at least 4 characters long.")
-        return value
 
 
 class ModulePublic(BaseModel):

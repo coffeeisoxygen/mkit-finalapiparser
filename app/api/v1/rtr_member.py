@@ -3,8 +3,8 @@ from fastapi import APIRouter
 from app.custom.exceptions import (
     EntityAlreadyExistsError,
     EntityNotFoundError,
-    with_app_exceptions,
 )
+from app.custom.exceptions.utils import generate_responses
 from app.deps.deps_service import DepMemberService
 from app.schemas.sch_member import (
     MemberCreate,
@@ -19,8 +19,11 @@ router = APIRouter()
 # ---------------------------
 # GET /member/{memberid}
 # ---------------------------
-@router.get("/{memberid}", response_model=MemberPublic)
-@with_app_exceptions(EntityNotFoundError)
+@router.get(
+    "/{memberid}",
+    response_model=MemberPublic,
+    responses=generate_responses(EntityNotFoundError),
+)
 def get_member(memberid: str, service: DepMemberService):
     """Ambil member by ID."""
     return service.get_member(memberid)
@@ -38,8 +41,11 @@ def list_members(service: DepMemberService):
 # ---------------------------
 # POST /member
 # ---------------------------
-@router.post("/", response_model=MemberPublic)
-@with_app_exceptions(EntityAlreadyExistsError)
+@router.post(
+    "/",
+    response_model=MemberPublic,
+    responses=generate_responses(EntityAlreadyExistsError),
+)
 def create_member(data: MemberCreate, service: DepMemberService):
     """Buat member baru."""
     return service.create_member(data)
@@ -48,8 +54,11 @@ def create_member(data: MemberCreate, service: DepMemberService):
 # ---------------------------
 # PUT /member/{memberid}
 # ---------------------------
-@router.put("/{memberid}", response_model=MemberPublic)
-@with_app_exceptions(EntityNotFoundError)
+@router.put(
+    "/{memberid}",
+    response_model=MemberPublic,
+    responses=generate_responses(EntityNotFoundError),
+)
 def update_member(memberid: str, data: MemberUpdate, service: DepMemberService):
     """Update data member."""
     return service.update_member(memberid, data)
@@ -58,8 +67,11 @@ def update_member(memberid: str, data: MemberUpdate, service: DepMemberService):
 # ---------------------------
 # DELETE /member/{memberid}
 # ---------------------------
-@router.delete("/{memberid}", status_code=204)
-@with_app_exceptions(EntityNotFoundError)
+@router.delete(
+    "/{memberid}",
+    status_code=204,
+    responses=generate_responses(EntityNotFoundError),
+)
 def remove_member(memberid: str, service: DepMemberService):
     """Hapus member by ID."""
     service.remove_member(MemberDelete(memberid=memberid))

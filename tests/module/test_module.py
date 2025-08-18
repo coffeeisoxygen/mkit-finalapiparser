@@ -13,10 +13,10 @@ def test_register_module_with_min_length_name(service):
     data = ModuleCreate(
         provider=ProviderEnums.DIGIPOS,
         name="A",  # min_length=1
-        username=SecretStr("user1"),
-        msisdn=SecretStr("628123456789"),
-        pin=SecretStr("123456"),
-        password=SecretStr("password123"),
+        username=str("user1"),
+        msisdn=str("628123456789"),
+        pin=str("123456"),
+        password=str("password123"),
         email="test@example.com",
         base_url="http://localhost/min",
     )
@@ -29,10 +29,10 @@ def test_register_module_with_max_length_name(service):
     data = ModuleCreate(
         provider=ProviderEnums.DIGIPOS,
         name=long_name,
-        username=SecretStr("user2"),
-        msisdn=SecretStr("628123456789"),
-        pin=SecretStr("123456"),
-        password=SecretStr("password123"),
+        username="user2",
+        msisdn="628123456789",
+        pin="123456",
+        password="password123",
         email="test@example.com",
         base_url="http://localhost/max",
     )
@@ -45,10 +45,10 @@ def test_register_module_with_invalid_ip(service):
         ModuleCreate(
             provider=ProviderEnums.DIGIPOS,
             name="Invalid IP",
-            username=SecretStr("user3"),
-            msisdn=SecretStr("628123456789"),
-            pin=SecretStr("123456"),
-            password=SecretStr("password123"),
+            username="user3",
+            msisdn="628123456789",
+            pin="123456",
+            password="password123",
             email="test@example.com",
             base_url="http://999.999.999.999",
         )
@@ -59,10 +59,10 @@ def test_register_module_with_invalid_url(service):
         ModuleCreate(
             provider=ProviderEnums.DIGIPOS,
             name="Invalid URL",
-            username=SecretStr("user4"),
-            msisdn=SecretStr("628123456789"),
-            pin=SecretStr("123456"),
-            password=SecretStr("password123"),
+            username="user4",
+            msisdn="628123456789",
+            pin="123456",
+            password="password123",
             email="test@example.com",
             base_url="not_a_url",
         )
@@ -73,10 +73,10 @@ def test_register_module_with_short_pin(service):
         ModuleCreate(
             provider=ProviderEnums.DIGIPOS,
             name="Short Pin",
-            username=SecretStr("user5"),
-            msisdn=SecretStr("628123456789"),
-            pin=SecretStr("123"),  # min_length=6
-            password=SecretStr("password123"),
+            username="user5",
+            msisdn="628123456789",
+            pin="123",  # min_length=6
+            password="password123",
             email="test@example.com",
             base_url="http://localhost/pin",
         )
@@ -86,10 +86,10 @@ def test_register_module_with_special_char_in_name(service):
     data = ModuleCreate(
         provider=ProviderEnums.DIGIPOS,
         name="Name!@#",  # allowed
-        username=SecretStr("user6"),
-        msisdn=SecretStr("628123456789"),
-        pin=SecretStr("123456"),
-        password=SecretStr("password123"),
+        username="user6",
+        msisdn="628123456789",
+        pin="123456",
+        password="password123",
         email="test@example.com",
         base_url="http://localhost/special",
     )
@@ -107,10 +107,10 @@ def test_register_and_list_module(service: ModuleService):
     data = ModuleCreate(
         provider=ProviderEnums.DIGIPOS,
         name="Module One",
-        username=SecretStr("user7"),
-        msisdn=SecretStr("628123456789"),
-        pin=SecretStr("123456"),
-        password=SecretStr("password123"),
+        username="user7",
+        msisdn="628123456789",
+        pin="123456",
+        password="password123",
         email="test@example.com",
         base_url="http://localhost/one",
     )
@@ -124,10 +124,10 @@ def test_update_module(service: ModuleService):
     data = ModuleCreate(
         provider=ProviderEnums.DIGIPOS,
         name="Module Two",
-        username=SecretStr("user8"),
-        msisdn=SecretStr("628123456789"),
-        pin=SecretStr("654321"),
-        password=SecretStr("password456"),
+        username="user8",
+        msisdn="628123456789",
+        pin="654321",
+        password="password456",
         email="test@example.com",
         base_url="http://localhost/two",
     )
@@ -141,10 +141,10 @@ def test_remove_module(service: ModuleService):
     data = ModuleCreate(
         provider=ProviderEnums.DIGIPOS,
         name="Remove Me",
-        username=SecretStr("user9"),
-        msisdn=SecretStr("628123456789"),
-        pin=SecretStr("111111"),
-        password=SecretStr("password789"),
+        username="user9",
+        msisdn="628123456789",
+        pin="111111",
+        password="password789",
         email="test@example.com",
         base_url="http://localhost/remove",
     )

@@ -1,5 +1,7 @@
 """module service logic."""
 
+from pydantic import SecretStr
+
 from app.custom.exceptions.cst_exceptions import (
     EntityAlreadyExistsError,
     EntityNotFoundError,
@@ -39,9 +41,18 @@ class ModuleService:
             log.error("Module already exists")
             raise EntityAlreadyExistsError(context={"moduleid": moduleid})
 
+        # Konversi field sensitif ke SecretStr
         module = ModuleInDB(
             moduleid=moduleid,
-            **data.model_dump(),
+            provider=data.provider,
+            name=data.name,
+            base_url=data.base_url,
+            username=SecretStr(data.username),
+            msisdn=SecretStr(data.msisdn),
+            pin=SecretStr(data.pin),
+            password=SecretStr(data.password),
+            email=data.email,
+            is_active=True,
         )
         self.repo.add(module.moduleid, module)
         log.info("Module created successfully")
