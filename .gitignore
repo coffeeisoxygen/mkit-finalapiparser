@@ -66,3 +66,5 @@ user_info.json
 *.hypothesis/
 .github/
 schemathesis.toml
+
+app/_version.py
