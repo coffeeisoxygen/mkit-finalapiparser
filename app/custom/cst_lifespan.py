@@ -1,11 +1,14 @@
 from fastapi.concurrency import asynccontextmanager
 
-from app.mlogg import init_logging, logger
+from app.config import get_settings
+from app.mlogg.setup import init_logging, logger
 from app.repositories import (
     AsyncInMemoryMemberRepo,
     AsyncInMemoryModuleRepo,
     UserRepository,
 )
+
+ENV = get_settings().APP_ENV.value
 
 
 @asynccontextmanager

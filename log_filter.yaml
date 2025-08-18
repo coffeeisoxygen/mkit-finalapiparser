@@ -1,0 +1,10 @@
+sensitive_words:
+  - password
+  - secret
+  - token
+  - api_key
+
+noisy_modules:
+  - python_multipart.multipart
+  - some_noisy_lib
+  - another_library.module
