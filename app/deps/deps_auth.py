@@ -9,7 +9,7 @@ from app.repositories.rep_user import UserRepository
 from app.service.auth.auth_service import AuthService
 from app.service.auth.credential_service import CredentialService
 from app.service.auth.token_service import TokenService
-from app.service.srv_hasher import HasherService
+from app.service.security.srv_hasher import HasherService
 
 settings = get_settings()
 hasher_service = HasherService()

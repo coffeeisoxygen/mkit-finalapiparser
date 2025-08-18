@@ -3,7 +3,7 @@ from app.custom.exceptions.cst_exceptions import UserNotFoundError, UserPassword
 from app.mlogg import logger
 from app.repositories.rep_user import UserRepository
 from app.schemas.sch_user import UserInDB
-from app.service.srv_hasher import HasherService
+from app.service.security.srv_hasher import HasherService
 
 
 class CredentialService:
