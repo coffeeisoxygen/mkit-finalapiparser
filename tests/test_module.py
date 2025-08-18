@@ -24,7 +24,7 @@ async def test_register_module_with_min_length_name(service):
         email="test@example.com",
         base_url="http://localhost/min",
     )
-    public = await service.create_module(data)
+    public = await service.create(data)
     assert public.moduleid.startswith("MOD")
 
 
@@ -41,7 +41,7 @@ async def test_register_module_with_max_length_name(service):
         email="test@example.com",
         base_url="http://localhost/max",
     )
-    public = await service.create_module(data)
+    public = await service.create(data)
     assert public.moduleid.startswith("MOD")
 
 
@@ -102,7 +102,7 @@ async def test_register_module_with_special_char_in_name(service):
         email="test@example.com",
         base_url="http://localhost/special",
     )
-    public = await service.create_module(data)
+    public = await service.create(data)
     assert public.moduleid.startswith("MOD")
 
 
@@ -124,9 +124,9 @@ async def test_register_and_list_module(service):
         email="test@example.com",
         base_url="http://localhost/one",
     )
-    public = await service.create_module(data)
+    public = await service.create(data)
     assert public.moduleid.startswith("MOD")
-    modules = await service.list_modules()
+    modules = await service.list()
     assert any(m.moduleid == public.moduleid for m in modules)
 
 
@@ -142,9 +142,9 @@ async def test_update_module(service):
         email="test@example.com",
         base_url="http://localhost/two",
     )
-    public = await service.create_module(data)
+    public = await service.create(data)
     update = ModuleUpdate(name="Module Updated")
-    updated = await service.update_module(public.moduleid, update)
+    updated = await service.update(public.moduleid, update)
     assert updated.moduleid == public.moduleid
 
 
@@ -160,11 +160,11 @@ async def test_remove_module(service):
         email="test@example.com",
         base_url="http://localhost/remove",
     )
-    public = await service.create_module(data)
-    await service.remove_module(ModuleDelete(moduleid=public.moduleid))
+    public = await service.create(data)
+    await service.remove(ModuleDelete(moduleid=public.moduleid))
 
     with pytest.raises(exc.EntityNotFoundError):
-        await service.update_module(public.moduleid, ModuleUpdate(name="Should Fail"))
+        await service.update(public.moduleid, ModuleUpdate(name="Should Fail"))
 
 
 @pytest.mark.asyncio
