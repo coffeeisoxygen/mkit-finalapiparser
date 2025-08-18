@@ -1,4 +1,5 @@
 # pyright: reportArgumentType = false
+# ruff : noqa
 import app.custom.exceptions as exc
 import pytest
 from app.repositories.rep_member import AsyncInMemoryMemberRepo
@@ -113,7 +114,7 @@ async def test_create_member_with_empty_name():
                 name="",
                 pin="123456",
                 password="password123",
-                ipaddress="192.168.1.100",  # pyright: ignore[reportArgumentType]
+                ipaddress="192.168.1.100",
                 report_url="http://localhost/report",
                 allow_nosign=False,
             )
