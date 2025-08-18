@@ -1,12 +1,14 @@
 import app.custom.exceptions as exc
 import pytest
-from app.repositories.rep_member import InMemoryMemberRepository
+import pytest_asyncio
+from app.repositories.rep_member import AsyncInMemoryMemberRepo
 from app.schemas.sch_member import MemberCreate, MemberDelete, MemberUpdate
 from app.service.srv_member import MemberService
 from pydantic import ValidationError
 
 
-def test_register_member_with_min_length_name(service):
+@pytest.mark.asyncio
+async def test_register_member_with_min_length_name(service):
     data = MemberCreate(
         name="A",  # min_length=1
         pin="123456",
@@ -15,11 +17,12 @@ def test_register_member_with_min_length_name(service):
         report_url="http://localhost/reportmin",
         allow_nosign=False,
     )
-    public = service.create_member(data)
+    public = await service.create_member(data)
     assert public.name == "A"
 
 
-def test_register_member_with_max_length_name(service):
+@pytest.mark.asyncio
+async def test_register_member_with_max_length_name(service):
     long_name = "A" * 100  # max_length=100
     data = MemberCreate(
         name=long_name,
@@ -29,11 +32,12 @@ def test_register_member_with_max_length_name(service):
         report_url="http://localhost/reportmax",
         allow_nosign=False,
     )
-    public = service.create_member(data)
+    public = await service.create_member(data)
     assert public.name == long_name
 
 
-def test_register_member_with_invalid_ip(service):
+@pytest.mark.asyncio
+async def test_register_member_with_invalid_ip(service):
     with pytest.raises(ValidationError):
         data = MemberCreate(
             name="Invalid IP",
@@ -43,10 +47,11 @@ def test_register_member_with_invalid_ip(service):
             report_url="http://localhost/reportip",
             allow_nosign=False,
         )
-        service.create_member(data)
+        await service.create_member(data)
 
 
-def test_register_member_with_invalid_url(service):
+@pytest.mark.asyncio
+async def test_register_member_with_invalid_url(service):
     with pytest.raises(ValidationError):
         data = MemberCreate(
             name="Invalid URL",
@@ -56,10 +61,11 @@ def test_register_member_with_invalid_url(service):
             report_url="not_a_url",  # invalid URL
             allow_nosign=False,
         )
-        service.create_member(data)
+        await service.create_member(data)
 
 
-def test_register_member_with_short_pin(service):
+@pytest.mark.asyncio
+async def test_register_member_with_short_pin(service):
     with pytest.raises(ValidationError):
         data = MemberCreate(
             name="Short Pin",
@@ -69,10 +75,11 @@ def test_register_member_with_short_pin(service):
             report_url="http://localhost/reportpin",
             allow_nosign=False,
         )
-        service.create_member(data)
+        await service.create_member(data)
 
 
-def test_register_member_with_special_char_in_name(service):
+@pytest.mark.asyncio
+async def test_register_member_with_special_char_in_name(service):
     data = MemberCreate(
         name="Name!@#",  # allowed
         pin="123456",
@@ -81,20 +88,21 @@ def test_register_member_with_special_char_in_name(service):
         report_url="http://localhost/reportspecial",
         allow_nosign=False,
     )
-    public = service.create_member(data)
+    public = await service.create_member(data)
     assert public.memberid.startswith("MEM")
 
 
 # pyright: reportArgumentType= false
 
 
-@pytest.fixture
-def service():
-    repo = InMemoryMemberRepository()
+@pytest_asyncio.fixture
+async def service():  # noqa: RUF029
+    repo = AsyncInMemoryMemberRepo()
     return MemberService(repo)
 
 
-def test_register_and_list_member(service: MemberService):
+@pytest.mark.asyncio
+async def test_register_and_list_member(service: MemberService):
     data = MemberCreate(
         name="John Doe",
         pin="123456",
@@ -104,15 +112,16 @@ def test_register_and_list_member(service: MemberService):
         allow_nosign=False,
     )
 
-    public = service.create_member(data)
+    public = await service.create_member(data)
     assert public.name == "John Doe"
     assert public.memberid.startswith("MEM")
 
-    members = service.list_members()
+    members = await service.list_members()
     assert any(m.name == "John Doe" for m in members)
 
 
-def test_update_member(service: MemberService):
+@pytest.mark.asyncio
+async def test_update_member(service: MemberService):
     data = MemberCreate(
         name="Jane Doe",
         pin="654321",
@@ -121,13 +130,14 @@ def test_update_member(service: MemberService):
         report_url="http://localhost/report2",
         allow_nosign=True,
     )
-    public = service.create_member(data)
+    public = await service.create_member(data)
     update = MemberUpdate(name="Jane Updated")
-    updated = service.update_member(public.memberid, update)
+    updated = await service.update_member(public.memberid, update)
     assert updated.name == "Jane Updated"
 
 
-def test_remove_member(service: MemberService):
+@pytest.mark.asyncio
+async def test_remove_member(service: MemberService):
     data = MemberCreate(
         name="Remove Me",
         pin="111111",
@@ -136,14 +146,15 @@ def test_remove_member(service: MemberService):
         report_url="http://localhost/report3",
         allow_nosign=False,
     )
-    public = service.create_member(data)
-    service.remove_member(MemberDelete(memberid=public.memberid))
+    public = await service.create_member(data)
+    await service.remove_member(MemberDelete(memberid=public.memberid))
 
     with pytest.raises(exc.EntityNotFoundError):
-        service.get_member(public.memberid)
+        await service.get_member(public.memberid)
 
 
-def test_register_member_with_empty_fields(service: MemberService):
+@pytest.mark.asyncio
+async def test_register_member_with_empty_fields(service: MemberService):
     with pytest.raises(ValidationError):
         data = MemberCreate(
             name="",
@@ -153,4 +164,4 @@ def test_register_member_with_empty_fields(service: MemberService):
             report_url="",
             allow_nosign=False,
         )
-        service.create_member(data)
+        await service.create_member(data)

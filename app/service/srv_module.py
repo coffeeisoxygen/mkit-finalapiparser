@@ -7,7 +7,7 @@ from app.custom.exceptions.cst_exceptions import (
     EntityNotFoundError,
 )
 from app.mlogg import logger
-from app.repositories.rep_module import SyncInmemoryModuleRepo
+from app.repositories.rep_module import AsyncInMemoryModuleRepo
 from app.schemas.sch_module import (
     ModuleCreate,
     ModuleDelete,
@@ -19,25 +19,30 @@ from app.schemas.sch_module import (
 PREFIX_MODULE = "MOD"
 
 
+import asyncio
+
+
 class ModuleService:
     """Service layer untuk module (business logic)."""
 
-    def __init__(self, repo: SyncInmemoryModuleRepo):
+    def __init__(self, repo: AsyncInMemoryModuleRepo):
         self.repo = repo
         self._counter = 0
+        self._lock = asyncio.Lock()
 
-    def _next_id(self) -> str:
-        """Generate moduleid baru dengan format MOD###."""
-        self._counter += 1
-        return f"{PREFIX_MODULE}{str(self._counter).zfill(3)}"
+    async def _next_id(self) -> str:
+        async with self._lock:
+            self._counter += 1
+            return f"{PREFIX_MODULE}{str(self._counter).zfill(3)}"
 
     # CREATE
-    def create_module(self, data: ModuleCreate) -> ModulePublic:
-        moduleid = self._next_id()
+    async def create_module(self, data: ModuleCreate) -> ModulePublic:
+        moduleid = await self._next_id()
         log = logger.bind(operation="create_module", moduleid=moduleid)
 
         # check duplicate
-        if self.repo.get(moduleid):
+        existing = await self.repo.get(moduleid)
+        if existing:
             log.error("Module already exists")
             raise EntityAlreadyExistsError(context={"moduleid": moduleid})
 
@@ -47,21 +52,23 @@ class ModuleService:
             provider=data.provider,
             name=data.name,
             base_url=data.base_url,
-            username=SecretStr(data.username),
-            msisdn=SecretStr(data.msisdn),
-            pin=SecretStr(data.pin),
-            password=SecretStr(data.password),
+            username=data.username,
+            msisdn=data.msisdn,
+            pin=SecretStr(data.pin) if isinstance(data.pin, str) else data.pin,
+            password=SecretStr(data.password)
+            if isinstance(data.password, str)
+            else data.password,
             email=data.email,
             is_active=True,
         )
-        self.repo.add(module.moduleid, module)
+        await self.repo.add(module.moduleid, module)
         log.info("Module created successfully")
         return ModulePublic(**module.model_dump())
 
     # READ
-    def get_module(self, moduleid: str) -> ModulePublic | None:
+    async def get_module(self, moduleid: str) -> ModulePublic | None:
         log = logger.bind(operation="get_module", moduleid=moduleid)
-        module = self.repo.get(moduleid)
+        module = await self.repo.get(moduleid)
         if module:
             log.info("Module retrieved")
             return ModulePublic(**module.model_dump())
@@ -70,35 +77,38 @@ class ModuleService:
             raise EntityNotFoundError(context={"moduleid": moduleid})
 
     # UPDATE
-    def update_module(self, moduleid: str, data: ModuleUpdate) -> ModulePublic:
+    async def update_module(self, moduleid: str, data: ModuleUpdate) -> ModulePublic:
         log = logger.bind(operation="update_module", moduleid=moduleid)
-        existing = self.repo.get(moduleid)
+        existing = await self.repo.get(moduleid)
         if not existing:
             log.error("Module not found for update")
             raise EntityNotFoundError(context={"moduleid": moduleid})
 
-        updated_data = existing.model_dump()
+        # Robustly convert pin/password to SecretStr if needed
         patch = data.model_dump(exclude_unset=True)
-        updated_data.update(patch)
-
-        updated = ModuleInDB(**updated_data)
-        self.repo.update(moduleid, updated)
+        if "pin" in patch and isinstance(patch["pin"], str):
+            patch["pin"] = SecretStr(patch["pin"])
+        if "password" in patch and isinstance(patch["password"], str):
+            patch["password"] = SecretStr(patch["password"])
+        for k, v in patch.items():
+            setattr(existing, k, v)
+        await self.repo.update(moduleid, existing)
         log.info("Module updated successfully")
-        return ModulePublic(**updated.model_dump())
+        return ModulePublic(**existing.model_dump())
 
     # DELETE
-    def remove_module(self, data: ModuleDelete) -> None:
+    async def remove_module(self, data: ModuleDelete) -> None:
         log = logger.bind(operation="remove_module", moduleid=data.moduleid)
-        module = self.repo.get(data.moduleid)
+        module = await self.repo.get(data.moduleid)
         if not module:
             log.error("Module not found for deletion")
             raise EntityNotFoundError(context={"moduleid": data.moduleid})
-        self.repo.remove(data.moduleid)
+        await self.repo.remove(data.moduleid)
         log.info("Module removed successfully")
 
     # LIST
-    def list_modules(self) -> list[ModulePublic]:
+    async def list_modules(self) -> list[ModulePublic]:
         log = logger.bind(operation="list_modules")
-        modules = [ModulePublic(**m.model_dump()) for m in self.repo.all()]
+        modules = [ModulePublic(**m.model_dump()) for m in await self.repo.all()]
         log.info("Listed all modules", count=len(modules))
         return modules

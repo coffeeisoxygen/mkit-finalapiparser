@@ -1,6 +1,6 @@
 from app.custom.exceptions import EntityAlreadyExistsError, EntityNotFoundError
 from app.mlogg import logger
-from app.repositories.rep_member import SyncInmemoryMemberRepo
+from app.repositories.rep_member import AsyncInMemoryMemberRepo
 from app.schemas.sch_member import (
     MemberCreate,
     MemberDelete,
@@ -13,18 +13,18 @@ PREFIX_MEMBER = "MEM"
 
 
 class MemberService:
-    def __init__(self, repo: SyncInmemoryMemberRepo):
+    def __init__(self, repo: AsyncInMemoryMemberRepo):
         self.repo = repo
         self._counter = 0
 
     def _next_id(self) -> str:
+        """Generate incremental member ID."""
         self._counter += 1
         return f"{PREFIX_MEMBER}{str(self._counter).zfill(3)}"
 
     # CREATE
-    def create_member(self, data: MemberCreate) -> MemberPublic:
-        # Check for duplicate name
-        for member in self.repo.all():
+    async def create_member(self, data: MemberCreate) -> MemberPublic:
+        for member in await self.repo.all():
             if member.name == data.name:
                 raise EntityAlreadyExistsError(
                     f"Member with name '{data.name}' already exists"
@@ -33,19 +33,19 @@ class MemberService:
         memberid = self._next_id()
         log = logger.bind(operation="create_member", memberid=memberid)
 
-        if self.repo.get(memberid):
+        if await self.repo.get(memberid):
             log.error("Member already exists")
             raise EntityAlreadyExistsError(context={"memberid": memberid})
 
         member = MemberInDB.from_create(memberid, data)
-        self.repo.add(memberid, member)
+        await self.repo.add(memberid, member)
         log.info("Member created successfully")
         return MemberPublic(**member.model_dump())
 
     # READ
-    def get_member(self, memberid: str) -> MemberPublic:
+    async def get_member(self, memberid: str) -> MemberPublic:
         log = logger.bind(operation="get_member", memberid=memberid)
-        member = self.repo.get(memberid)
+        member = await self.repo.get(memberid)
         if not member:
             log.error("Member not found")
             raise EntityNotFoundError(context={"memberid": memberid})
@@ -53,31 +53,31 @@ class MemberService:
         return MemberPublic(**member.model_dump())
 
     # UPDATE
-    def update_member(self, memberid: str, data: MemberUpdate) -> MemberPublic:
+    async def update_member(self, memberid: str, data: MemberUpdate) -> MemberPublic:
         log = logger.bind(operation="update_member", memberid=memberid)
-        member = self.repo.get(memberid)
+        member = await self.repo.get(memberid)
         if not member:
             log.error("Member not found for update")
             raise EntityNotFoundError(context={"memberid": memberid})
 
         member.update_from(data)
-        self.repo.update(memberid, member)
+        await self.repo.update(memberid, member)
         log.info("Member updated successfully")
         return MemberPublic(**member.model_dump())
 
     # DELETE
-    def remove_member(self, data: MemberDelete) -> None:
+    async def remove_member(self, data: MemberDelete) -> None:
         log = logger.bind(operation="remove_member", memberid=data.memberid)
-        member = self.repo.get(data.memberid)
+        member = await self.repo.get(data.memberid)
         if not member:
             log.error("Member not found for deletion")
             raise EntityNotFoundError(context={"memberid": data.memberid})
-        self.repo.remove(data.memberid)
+        await self.repo.remove(data.memberid)
         log.info("Member removed successfully")
 
     # LIST
-    def list_members(self) -> list[MemberPublic]:
+    async def list_members(self) -> list[MemberPublic]:
         log = logger.bind(operation="list_members")
-        members = [MemberPublic(**m.model_dump()) for m in self.repo.all()]
+        members = [MemberPublic(**m.model_dump()) for m in await self.repo.all()]
         log.info("Listed all members", count=len(members))
         return members
