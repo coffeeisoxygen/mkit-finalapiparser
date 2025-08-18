@@ -13,7 +13,9 @@ class MemberBase(BaseModel):
 
     name: str = Field(..., description="Nama member", min_length=1, max_length=100)
     is_active: bool = Field(default=True, description="Status keaktifan member")
-    ipaddress: IPvAnyAddress = Field(description="Alamat IP member")
+    ipaddress: IPvAnyAddress = Field(
+        ..., description="Alamat IP member", examples=["192.168.1.1"]
+    )
     report_url: AnyHttpUrl = Field(..., description="URL untuk laporan member")
     allow_nosign: bool = Field(
         default=False,
@@ -58,8 +60,8 @@ class MemberCreate(BaseModel):
     """Admin create member."""
 
     name: str
-    pin: SecretStr
-    password: SecretStr
+    pin: str = Field(..., min_length=6, description="PIN untuk member")
+    password: str = Field(..., min_length=6, description="Password untuk member")
     ipaddress: IPvAnyAddress
     report_url: AnyHttpUrl
     allow_nosign: bool = False

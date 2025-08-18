@@ -1,3 +1,5 @@
+from pydantic import SecretStr
+
 from app.custom.exceptions.cst_exceptions import (
     EntityAlreadyExistsError,
     EntityNotFoundError,
@@ -39,7 +41,13 @@ class MemberService:
 
         member = MemberInDB(
             memberid=memberid,
-            **data.model_dump(),
+            name=data.name,
+            pin=SecretStr(data.pin),
+            password=SecretStr(data.password),
+            ipaddress=data.ipaddress,
+            report_url=data.report_url,
+            allow_nosign=data.allow_nosign,
+            is_active=True,
         )
         self.repo.add(member.memberid, member)
         log.info("Member created successfully")
