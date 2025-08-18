@@ -21,7 +21,7 @@ class CredentialService:
                 "User not found", username=username
             )
             raise UserNotFoundError()
-        if not self.hasher.verify_password(password, user.hashed_password):
+        if not self.hasher.verify_value(password, user.hashed_password):
             logger.bind(service="CredentialService").warning(
                 "Incorrect password", username=username
             )
