@@ -1,4 +1,4 @@
-from app.repositories.base_repo import AsyncInMemoryRepo
+from app.repositories.memory.base_repo import AsyncInMemoryRepo
 from app.schemas.sch_member import MemberInDB
 
 

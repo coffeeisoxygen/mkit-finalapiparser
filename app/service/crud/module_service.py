@@ -1,6 +1,6 @@
 """Module service layer."""
 
-from app.repositories.rep_module import AsyncInMemoryModuleRepo
+from app.repositories.memory.rep_module import AsyncInMemoryModuleRepo
 from app.schemas.sch_module import (
     ModuleCreate,
     ModuleDelete,

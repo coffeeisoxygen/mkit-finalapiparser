@@ -3,7 +3,7 @@ import asyncio
 from typing import TypeVar
 
 from app.custom.exceptions import EntityAlreadyExistsError, EntityNotFoundError
-from app.repositories.abs_repo import AsbtractAsyncRepos
+from app.repositories.memory.abs_repo import AsbtractAsyncRepos
 
 T = TypeVar("T")  # entity type
 K = TypeVar("K")  # key type

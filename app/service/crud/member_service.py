@@ -1,7 +1,7 @@
 """Member service layer."""
 
 from app.custom.exceptions.cst_exceptions import EntityAlreadyExistsError
-from app.repositories.rep_member import AsyncInMemoryMemberRepo
+from app.repositories.memory.rep_member import AsyncInMemoryMemberRepo
 from app.schemas.sch_member import (
     MemberCreate,
     MemberDelete,

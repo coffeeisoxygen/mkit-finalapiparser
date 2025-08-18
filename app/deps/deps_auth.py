@@ -5,7 +5,7 @@ from fastapi import Depends
 
 from app.config import get_settings
 from app.deps.deps_service import get_user_repo
-from app.repositories.rep_user import UserRepository
+from app.repositories.memory.rep_user import UserRepository
 from app.service.auth.auth_service import AuthService
 from app.service.auth.credential_service import CredentialService
 from app.service.auth.token_service import TokenService

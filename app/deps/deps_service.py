@@ -5,7 +5,7 @@ from typing import Annotated
 from fastapi import Depends, Request
 
 from app.repositories import AsyncInMemoryMemberRepo, AsyncInMemoryModuleRepo
-from app.repositories.rep_user import UserRepository
+from app.repositories.memory.rep_user import UserRepository
 from app.service import MemberService, ModuleService
 
 # ───────────────────────────────

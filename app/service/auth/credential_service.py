@@ -1,7 +1,7 @@
 # app/service/auth/credential_service.py
 from app.custom.exceptions.cst_exceptions import UserNotFoundError, UserPasswordError
 from app.mlogg import logger
-from app.repositories.rep_user import UserRepository
+from app.repositories.memory.rep_user import UserRepository
 from app.schemas.sch_user import UserInDB
 from app.service.security.srv_hasher import HasherService
 
