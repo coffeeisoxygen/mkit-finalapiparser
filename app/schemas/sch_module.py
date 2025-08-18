@@ -93,6 +93,14 @@ class ModuleUpdate(BaseModel):
     email: EmailStr | None = None
     is_active: bool | None = None
 
+    @field_validator("moduleid", "name", "base_url", "username", mode="before")
+    @classmethod
+    def empty_to_none(cls, value: object) -> object:
+        # treat empty string, False, and None as None
+        if value in (None, "", False):
+            return None
+        return value
+
 
 class ModuleDelete(BaseModel):
     moduleid: str

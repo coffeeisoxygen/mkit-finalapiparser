@@ -10,8 +10,6 @@ from pydantic import (
 
 
 class MemberBase(BaseModel):
-    """Base shared fields."""
-
     name: str = Field(..., description="Nama member", min_length=1, max_length=100)
     is_active: bool = Field(default=True, description="Status keaktifan member")
     ipaddress: IPvAnyAddress = Field(
@@ -19,61 +17,59 @@ class MemberBase(BaseModel):
     )
     report_url: AnyHttpUrl = Field(..., description="URL untuk laporan member")
     allow_nosign: bool = Field(
-        default=False,
-        description="Apakah member diizinkan untuk hit tanpa Signature.",
+        default=False, description="Apakah member diizinkan untuk hit tanpa Signature."
     )
 
 
 class MemberInDB(MemberBase):
-    """Full member stored in DB."""
-
-    model_config = ConfigDict(
-        populate_by_name=True,
-        extra="forbid",
-        json_schema_extra={
-            "example": {
-                "memberid": "M12345",
-                "name": "John Doe",
-                "pin": "123456",
-                "password": "password123",
-                "is_active": True,
-                "ipaddress": "192.168.1.1",
-                "report_url": "http://example.com/report",
-                "allow_nosign": False,
-            }
-        },
-    )
-
     memberid: str = Field(
         description="ID unik untuk member", min_length=5, pattern=r"^[a-zA-Z0-9]*$"
     )
     pin: SecretStr = Field(..., description="PIN untuk member", min_length=6)
     password: SecretStr = Field(..., description="Password untuk member", min_length=6)
 
+    model_config = ConfigDict(extra="forbid", populate_by_name=True)
+
+    @classmethod
+    def from_create(cls, memberid: str, data: "MemberCreate") -> "MemberInDB":
+        return cls(
+            memberid=memberid,
+            name=data.name,
+            pin=SecretStr(data.pin),
+            password=SecretStr(data.password),
+            ipaddress=data.ipaddress,
+            report_url=data.report_url,
+            allow_nosign=data.allow_nosign,
+            is_active=True,
+        )
+
+    def update_from(self, patch: "MemberUpdate") -> None:
+        data = patch.model_dump(exclude_unset=True)
+        if "pin" in data and isinstance(data["pin"], str):
+            data["pin"] = SecretStr(data["pin"])
+        if "password" in data and isinstance(data["password"], str):
+            data["password"] = SecretStr(data["password"])
+        for k, v in data.items():
+            setattr(self, k, v)
+
 
 class MemberPublic(MemberBase):
-    """Response ke client, tanpa info sensitif."""
-
     memberid: str
 
 
 class MemberCreate(BaseModel):
-    """Admin create member."""
-
     name: str
-    pin: str = Field(..., min_length=6, description="PIN untuk member")
-    password: str = Field(..., min_length=6, description="Password untuk member")
+    pin: str = Field(..., min_length=6)
+    password: str = Field(..., min_length=6)
     ipaddress: IPvAnyAddress
     report_url: AnyHttpUrl
     allow_nosign: bool = False
 
 
 class MemberUpdate(BaseModel):
-    """Admin update member (opsional semua)."""
-
     name: str | None = None
-    pin: SecretStr | None = None
-    password: SecretStr | None = None
+    pin: str | SecretStr | None = None
+    password: str | SecretStr | None = None
     is_active: bool | None = None
     ipaddress: IPvAnyAddress | None = None
     report_url: AnyHttpUrl | None = None
@@ -84,13 +80,10 @@ class MemberUpdate(BaseModel):
     )
     @classmethod
     def empty_to_none(cls, value: object) -> object:
-        # treat empty string, False, and None as None
         if value in (None, "", False):
             return None
         return value
 
 
 class MemberDelete(BaseModel):
-    """Admin delete member, cukup pakai id."""
-
     memberid: str
