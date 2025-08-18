@@ -1,4 +1,5 @@
 # pyright:reportArgumentType= false
+# ruff:noqa
 import pytest
 from app.custom.exceptions.cst_exceptions import EntityAlreadyExistsError
 from app.repositories.rep_member import AsyncInMemoryMemberRepo
