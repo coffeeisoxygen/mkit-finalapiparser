@@ -24,11 +24,6 @@ class EnvironmentEnums(StrEnum):
     TESTING = "TESTING"
 
 
-class ProviderEnums(StrEnum):
-    DIGIPOS = "DIGIPOS"
-    ISIMPLE = "ISIMPLE"
-
-
 class Settings(BaseSettings):
     model_config = SettingsConfigDict(
         env_file=DEFAULT_ENV_FILE,

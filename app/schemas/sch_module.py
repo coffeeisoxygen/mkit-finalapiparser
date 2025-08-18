@@ -1,102 +1,105 @@
-"""schema untuk Module , all thing related hanya di manage oleh admin."""
+from enum import StrEnum
 
-from pydantic import AnyHttpUrl, BaseModel, EmailStr, Field, SecretStr, field_validator
+from pydantic import (
+    AnyHttpUrl,
+    BaseModel,
+    ConfigDict,
+    EmailStr,
+    Field,
+    SecretStr,
+    field_validator,
+)
 
-from app.config import ProviderEnums
+
+class ProviderEnums(StrEnum):
+    DIGIPOS = "DIGIPOS"
+    ISIMPLE = "ISIMPLE"
 
 
 class ModuleBase(BaseModel):
-    """Base schema for module."""
-
-    provider: ProviderEnums
-    name: str
-    base_url: AnyHttpUrl | None = None
-    is_active: bool = Field(default=True, description="Is the module active?")
-
-    @field_validator("provider", mode="after")
-    @classmethod
-    def validate_provider(cls, value: str) -> ProviderEnums:
-        for enum_member in ProviderEnums:
-            if value.lower() == enum_member.value.lower():
-                return enum_member
-        raise ValueError(f"Invalid provider: {value!r}")
+    name: str = Field(..., description="Nama module", min_length=1, max_length=100)
+    provider: ProviderEnums = Field(..., description="Provider module")
+    username: str = Field(..., description="Username untuk module")
+    msisdn: str = Field(..., description="MSISDN (nomor telepon) module")
+    email: EmailStr = Field(..., description="Email kontak module")
+    base_url: AnyHttpUrl = Field(..., description="Base URL API module")
+    is_active: bool = Field(default=True, description="Status aktif module")
 
 
 class ModuleInDB(ModuleBase):
-    model_config = {
-        "from_attributes": True,
-        "extra": "forbid",
-        "populate_by_name": True,
-        "str_strip_whitespace": True,
-        "json_schema_extra": {
-            "example": [
-                {
-                    "provider": "digipos",
-                    "name": "XXXX",
-                    "username": "XXXXX",
-                    "msisdn": "62xxxxxxxx",
-                    "pin": "123456",
-                    "password": "pasxxxxx",
-                    "email": "XXXX@gmail.com",
-                    "is_active": "true",
-                    "base_url": "http://10.0.0.3:10003",
-                }
-            ]
-        },
-    }
     moduleid: str = Field(
-        description="ID unik untuk member", min_length=5, pattern=r"^[a-zA-Z0-9]*$"
+        description="ID unik untuk module", min_length=5, pattern=r"^[a-zA-Z0-9]*$"
     )
-    username: SecretStr
-    msisdn: SecretStr
-    pin: SecretStr
-    password: SecretStr
-    email: EmailStr | None = None
-    is_active: bool = True
+    pin: SecretStr = Field(..., description="PIN untuk module", min_length=6)
+    password: SecretStr = Field(..., description="Password untuk module", min_length=6)
+
+    model_config = ConfigDict(extra="forbid", populate_by_name=True)
+
+    @classmethod
+    def from_create(cls, moduleid: str, data: "ModuleCreate") -> "ModuleInDB":
+        return cls(
+            moduleid=moduleid,
+            name=data.name,
+            provider=data.provider,
+            username=data.username,
+            msisdn=data.msisdn,
+            pin=SecretStr(data.pin),
+            password=SecretStr(data.password),
+            email=data.email,
+            base_url=data.base_url,
+            is_active=True,
+        )
+
+    def update_from(self, patch: "ModuleUpdate") -> None:
+        data = patch.model_dump(exclude_unset=True)
+        if "pin" in data and isinstance(data["pin"], str):
+            data["pin"] = SecretStr(data["pin"])
+        if "password" in data and isinstance(data["password"], str):
+            data["password"] = SecretStr(data["password"])
+        for k, v in data.items():
+            setattr(self, k, v)
 
 
-class ModuleCreate(BaseModel):
-    """Create module schema."""
-
-    provider: ProviderEnums
-    name: str
-    base_url: AnyHttpUrl
-    username: str = Field(
-        ...,
-        min_length=1,
-        pattern=r"^[a-zA-Z0-9._-]+$",
-        description="Username untuk module",
-    )
-    msisdn: str = Field(
-        ..., pattern=r"^\+?[1-9]\d{1,14}$", description="MSISDN untuk module"
-    )
-    pin: str = Field(
-        ..., min_length=4, pattern=r"^[0-9]+$", description="PIN untuk module"
-    )
-    password: str = Field(..., min_length=4, description="Password untuk module")
-    email: EmailStr | None = Field(description="Email untuk module")
-
-
-class ModulePublic(BaseModel):
+class ModulePublic(ModuleBase):
     moduleid: str
 
 
+class ModuleCreate(BaseModel):
+    name: str
+    provider: ProviderEnums = Field(..., description="Provider module")
+    username: str
+    msisdn: str
+    pin: str = Field(..., min_length=6)
+    password: str = Field(..., min_length=6)
+    email: EmailStr
+    base_url: AnyHttpUrl
+
+    model_config = ConfigDict(extra="forbid", use_enum_values=False)
+
+
 class ModuleUpdate(BaseModel):
-    moduleid: str | None = None
-    provider: ProviderEnums | None = None
     name: str | None = None
-    base_url: str | None = None
-    username: SecretStr | None = None
-    msisdn: SecretStr | None = None
-    pin: SecretStr | None = None
-    password: SecretStr | None = None
+    provider: ProviderEnums | None = None
+    username: str | None = None
+    msisdn: str | None = None
+    pin: str | SecretStr | None = None
+    password: str | SecretStr | None = None
     email: EmailStr | None = None
+    base_url: AnyHttpUrl | None = None
     is_active: bool | None = None
 
-    @field_validator("moduleid", "name", "base_url", "username", mode="before")
+    @field_validator(
+        "name",
+        "pin",
+        "password",
+        "username",
+        "msisdn",
+        "email",
+        "base_url",
+        mode="before",
+    )
     @classmethod
     def empty_to_none(cls, value: object) -> object:
-        # treat empty string, False, and None as None
         if value in (None, "", False):
             return None
         return value

@@ -1,6 +1,6 @@
 from app.custom.exceptions import EntityAlreadyExistsError, EntityNotFoundError
 from app.mlogg import logger
-from app.repositories.rep_member import InMemoryMemberRepository
+from app.repositories.rep_member import SyncInmemoryMemberRepo
 from app.schemas.sch_member import (
     MemberCreate,
     MemberDelete,
@@ -13,7 +13,7 @@ PREFIX_MEMBER = "MEM"
 
 
 class MemberService:
-    def __init__(self, repo: InMemoryMemberRepository):
+    def __init__(self, repo: SyncInmemoryMemberRepo):
         self.repo = repo
         self._counter = 0
 

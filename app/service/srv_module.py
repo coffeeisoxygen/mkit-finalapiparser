@@ -7,7 +7,7 @@ from app.custom.exceptions.cst_exceptions import (
     EntityNotFoundError,
 )
 from app.mlogg import logger
-from app.repositories.rep_module import InMemoryModuleRepository
+from app.repositories.rep_module import SyncInmemoryModuleRepo
 from app.schemas.sch_module import (
     ModuleCreate,
     ModuleDelete,
@@ -22,7 +22,7 @@ PREFIX_MODULE = "MOD"
 class ModuleService:
     """Service layer untuk module (business logic)."""
 
-    def __init__(self, repo: InMemoryModuleRepository):
+    def __init__(self, repo: SyncInmemoryModuleRepo):
         self.repo = repo
         self._counter = 0
 

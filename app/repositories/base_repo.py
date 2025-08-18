@@ -1,14 +1,10 @@
 """A generic repository interface."""
 
 from abc import ABC, abstractmethod
-from typing import TypeVar
-
-T = TypeVar("T")  # entity type
-K = TypeVar("K")  # key type
 
 
-class AbstractRepository[T, K](ABC):
-    """Interface repository generic."""
+class SyncRepository[T, K](ABC):
+    """Interface repository generic sync."""
 
     @abstractmethod
     def add(self, key: K, entity: T) -> None: ...
@@ -24,3 +20,22 @@ class AbstractRepository[T, K](ABC):
 
     @abstractmethod
     def all(self) -> list[T]: ...
+
+
+class AsyncRepository[T, K](ABC):
+    """Interface repository generic async."""
+
+    @abstractmethod
+    async def add(self, key: K, entity: T) -> None: ...
+
+    @abstractmethod
+    async def get(self, key: K) -> T | None: ...
+
+    @abstractmethod
+    async def update(self, key: K, entity: T) -> None: ...
+
+    @abstractmethod
+    async def remove(self, key: K) -> None: ...
+
+    @abstractmethod
+    async def all(self) -> list[T]: ...
