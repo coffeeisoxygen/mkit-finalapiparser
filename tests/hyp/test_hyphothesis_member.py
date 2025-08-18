@@ -4,7 +4,7 @@ import app.custom.exceptions as exc
 import pytest
 from app.repositories.rep_member import AsyncInMemoryMemberRepo
 from app.schemas.sch_member import MemberCreate, MemberDelete, MemberUpdate
-from app.service.srv_member import MemberService
+from app.service import MemberService
 from hypothesis import given
 from hypothesis import strategies as st
 
@@ -38,11 +38,11 @@ async def test_create_and_get_member(
         report_url=report_url,
         allow_nosign=allow_nosign,
     )
-    created = await service.create_member(data)
+    created = await service.create(data)
 
     assert created.name == name
 
-    fetched = await service.get_member(created.memberid)
+    fetched = await service.get(created.memberid)
     assert fetched == created
 
 
@@ -58,7 +58,7 @@ async def test_create_and_get_member(
 async def test_update_member(name, pin, password, ipaddress, report_url, allow_nosign):
     service = MemberService(AsyncInMemoryMemberRepo())
     # create dulu
-    created = await service.create_member(
+    created = await service.create(
         MemberCreate(
             name="dummy",
             pin=pin,
@@ -70,7 +70,7 @@ async def test_update_member(name, pin, password, ipaddress, report_url, allow_n
     )
 
     # update
-    updated = await service.update_member(created.memberid, MemberUpdate(name=name))
+    updated = await service.update(created.memberid, MemberUpdate(name=name))
     assert updated.name == name
 
 
@@ -86,7 +86,7 @@ async def test_update_member(name, pin, password, ipaddress, report_url, allow_n
 async def test_delete_member(name, pin, password, ipaddress, report_url, allow_nosign):
     service = MemberService(AsyncInMemoryMemberRepo())
     # create
-    created = await service.create_member(
+    created = await service.create(
         MemberCreate(
             name=name,
             pin=pin,
@@ -98,18 +98,18 @@ async def test_delete_member(name, pin, password, ipaddress, report_url, allow_n
     )
 
     # delete
-    await service.remove_member(MemberDelete(memberid=created.memberid))
+    await service.remove(MemberDelete(memberid=created.memberid))
 
     # pastikan not found
     with pytest.raises(exc.EntityNotFoundError):
-        await service.get_member(created.memberid)
+        await service.get(created.memberid)
 
 
 @pytest.mark.asyncio
-async def test_create_member_with_empty_name():
+async def test_create_with_empty_name():
     service = MemberService(AsyncInMemoryMemberRepo())
     with pytest.raises(Exception):  # noqa: B017
-        await service.create_member(
+        await service.create(
             MemberCreate(
                 name="",
                 pin="123456",
@@ -122,10 +122,10 @@ async def test_create_member_with_empty_name():
 
 
 @pytest.mark.asyncio
-async def test_create_member_with_short_pin():
+async def test_create_with_short_pin():
     service = MemberService(AsyncInMemoryMemberRepo())
     with pytest.raises(Exception):
-        await service.create_member(
+        await service.create(
             MemberCreate(
                 name="Valid Name",
                 pin="123",  # too short
@@ -138,10 +138,10 @@ async def test_create_member_with_short_pin():
 
 
 @pytest.mark.asyncio
-async def test_create_member_with_invalid_ip():
+async def test_create_with_invalid_ip():
     service = MemberService(AsyncInMemoryMemberRepo())
     with pytest.raises(Exception):
-        await service.create_member(
+        await service.create(
             MemberCreate(
                 name="Valid Name",
                 pin="123456",
@@ -154,10 +154,10 @@ async def test_create_member_with_invalid_ip():
 
 
 @pytest.mark.asyncio
-async def test_create_member_with_invalid_url():
+async def test_create_with_invalid_url():
     service = MemberService(AsyncInMemoryMemberRepo())
     with pytest.raises(Exception):
-        await service.create_member(
+        await service.create(
             MemberCreate(
                 name="Valid Name",
                 pin="123456",
@@ -172,7 +172,7 @@ async def test_create_member_with_invalid_url():
 @pytest.mark.asyncio
 async def test_update_member_with_empty_name():
     service = MemberService(AsyncInMemoryMemberRepo())
-    created = await service.create_member(
+    created = await service.create(
         MemberCreate(
             name="Valid Name",
             pin="123456",
@@ -183,11 +183,11 @@ async def test_update_member_with_empty_name():
         )
     )
     with pytest.raises(Exception):
-        await service.update_member(created.memberid, MemberUpdate(name=""))
+        await service.update(created.memberid, MemberUpdate(name=""))
 
 
 @pytest.mark.asyncio
 async def test_delete_nonexistent_member():
     service = MemberService(AsyncInMemoryMemberRepo())
     with pytest.raises(exc.EntityNotFoundError):
-        await service.remove_member(MemberDelete(memberid="NON_EXISTENT_ID"))
+        await service.remove(MemberDelete(memberid="NON_EXISTENT_ID"))

@@ -5,7 +5,7 @@ import pytest
 from app.schemas.sch_module import ProviderEnums
 from app.repositories.rep_module import AsyncInMemoryModuleRepo
 from app.schemas.sch_module import ModuleCreate, ModuleDelete, ModuleUpdate
-from app.service.srv_module import ModuleService
+from app.service import ModuleService
 from pydantic import SecretStr, ValidationError
 
 
