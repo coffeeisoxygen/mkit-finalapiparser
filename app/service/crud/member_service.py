@@ -9,7 +9,7 @@ from app.schemas.sch_member import (
     MemberPublic,
     MemberUpdate,
 )
-from app.service.base_service import BaseService
+from app.service.crud.base_service import BaseService
 
 
 class MemberService(

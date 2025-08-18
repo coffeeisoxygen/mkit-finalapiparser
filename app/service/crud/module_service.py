@@ -8,7 +8,7 @@ from app.schemas.sch_module import (
     ModulePublic,
     ModuleUpdate,
 )
-from app.service.base_service import BaseService
+from app.service.crud.base_service import BaseService
 
 
 class ModuleService(

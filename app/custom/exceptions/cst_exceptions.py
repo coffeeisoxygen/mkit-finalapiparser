@@ -28,9 +28,6 @@ class AppExceptionError(Exception):
         super().__init__(self.message)
 
 
-# Member Auth Error should Group In Entitiy Error
-
-
 class EntityNotFoundError(AppExceptionError):
     """Exception raised when an entity is not found."""
 
@@ -63,4 +60,18 @@ class TokenInvalidError(AuthError):
     """Exception raised when a token is invalid."""
 
     default_message = "Token is invalid."
+    status_code = 401
+
+
+class UserNotFoundError(AuthError):
+    """Exception raised when a user is not found."""
+
+    default_message = "User not found."
+    status_code = 404
+
+
+class UserPasswordError(AuthError):
+    """Exception raised when a user's password is incorrect."""
+
+    default_message = "Incorrect password."
     status_code = 401
