@@ -75,3 +75,10 @@ class UserPasswordError(AuthError):
 
     default_message = "Incorrect password."
     status_code = 401
+
+
+class ServiceError(AppExceptionError):
+    """Exception raised for service errors."""
+
+    default_message = "Service error occurred."
+    status_code = 503

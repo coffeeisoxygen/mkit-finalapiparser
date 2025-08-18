@@ -39,6 +39,7 @@ class Settings(BaseSettings):
     JWT_SECRET_KEY: str
     JWT_ALGORITHM: str
     JWT_ACCESS_TOKEN_EXPIRE_MINUTES: int
+    DB_URL: str = "sqlite+aiosqlite:///./mkit.db"
 
 
 @lru_cache
