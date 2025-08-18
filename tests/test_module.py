@@ -9,22 +9,27 @@ from app.service.srv_module import ModuleService
 from pydantic import SecretStr, ValidationError
 
 
-def test_register_module_with_min_length_name(service):
+import pytest_asyncio
+
+
+@pytest.mark.asyncio
+async def test_register_module_with_min_length_name(service):
     data = ModuleCreate(
         provider=ProviderEnums.DIGIPOS,
         name="A",  # min_length=1
-        username=str("user1"),
-        msisdn=str("628123456789"),
-        pin=str("123456"),
-        password=str("password123"),
+        username="user1",
+        msisdn="628123456789",
+        pin="123456",
+        password="password123",
         email="test@example.com",
         base_url="http://localhost/min",
     )
-    public = service.create_module(data)
+    public = await service.create_module(data)
     assert public.moduleid.startswith("MOD")
 
 
-def test_register_module_with_max_length_name(service):
+@pytest.mark.asyncio
+async def test_register_module_with_max_length_name(service):
     long_name = "A" * 100  # max_length=100
     data = ModuleCreate(
         provider=ProviderEnums.DIGIPOS,
@@ -36,11 +41,12 @@ def test_register_module_with_max_length_name(service):
         email="test@example.com",
         base_url="http://localhost/max",
     )
-    public = service.create_module(data)
+    public = await service.create_module(data)
     assert public.moduleid.startswith("MOD")
 
 
-def test_register_module_with_invalid_ip(service):
+@pytest.mark.asyncio
+async def test_register_module_with_invalid_ip(service):
     with pytest.raises(ValidationError):
         ModuleCreate(
             provider=ProviderEnums.DIGIPOS,
@@ -54,7 +60,8 @@ def test_register_module_with_invalid_ip(service):
         )
 
 
-def test_register_module_with_invalid_url(service):
+@pytest.mark.asyncio
+async def test_register_module_with_invalid_url(service):
     with pytest.raises(ValidationError):
         ModuleCreate(
             provider=ProviderEnums.DIGIPOS,
@@ -68,7 +75,8 @@ def test_register_module_with_invalid_url(service):
         )
 
 
-def test_register_module_with_short_pin(service):
+@pytest.mark.asyncio
+async def test_register_module_with_short_pin(service):
     with pytest.raises(ValidationError):
         ModuleCreate(
             provider=ProviderEnums.DIGIPOS,
@@ -82,7 +90,8 @@ def test_register_module_with_short_pin(service):
         )
 
 
-def test_register_module_with_special_char_in_name(service):
+@pytest.mark.asyncio
+async def test_register_module_with_special_char_in_name(service):
     data = ModuleCreate(
         provider=ProviderEnums.DIGIPOS,
         name="Name!@#",  # allowed
@@ -93,17 +102,18 @@ def test_register_module_with_special_char_in_name(service):
         email="test@example.com",
         base_url="http://localhost/special",
     )
-    public = service.create_module(data)
+    public = await service.create_module(data)
     assert public.moduleid.startswith("MOD")
 
 
-@pytest.fixture
-def service():
+@pytest_asyncio.fixture
+async def service():
     repo = AsyncInMemoryModuleRepo()
     return ModuleService(repo)
 
 
-def test_register_and_list_module(service: ModuleService):
+@pytest.mark.asyncio
+async def test_register_and_list_module(service):
     data = ModuleCreate(
         provider=ProviderEnums.DIGIPOS,
         name="Module One",
@@ -114,13 +124,14 @@ def test_register_and_list_module(service: ModuleService):
         email="test@example.com",
         base_url="http://localhost/one",
     )
-    public = service.create_module(data)
+    public = await service.create_module(data)
     assert public.moduleid.startswith("MOD")
-    modules = service.list_modules()
+    modules = await service.list_modules()
     assert any(m.moduleid == public.moduleid for m in modules)
 
 
-def test_update_module(service: ModuleService):
+@pytest.mark.asyncio
+async def test_update_module(service):
     data = ModuleCreate(
         provider=ProviderEnums.DIGIPOS,
         name="Module Two",
@@ -131,13 +142,14 @@ def test_update_module(service: ModuleService):
         email="test@example.com",
         base_url="http://localhost/two",
     )
-    public = service.create_module(data)
+    public = await service.create_module(data)
     update = ModuleUpdate(name="Module Updated")
-    updated = service.update_module(public.moduleid, update)
+    updated = await service.update_module(public.moduleid, update)
     assert updated.moduleid == public.moduleid
 
 
-def test_remove_module(service: ModuleService):
+@pytest.mark.asyncio
+async def test_remove_module(service):
     data = ModuleCreate(
         provider=ProviderEnums.DIGIPOS,
         name="Remove Me",
@@ -148,14 +160,15 @@ def test_remove_module(service: ModuleService):
         email="test@example.com",
         base_url="http://localhost/remove",
     )
-    public = service.create_module(data)
-    service.remove_module(ModuleDelete(moduleid=public.moduleid))
+    public = await service.create_module(data)
+    await service.remove_module(ModuleDelete(moduleid=public.moduleid))
 
     with pytest.raises(exc.EntityNotFoundError):
-        service.update_module(public.moduleid, ModuleUpdate(name="Should Fail"))
+        await service.update_module(public.moduleid, ModuleUpdate(name="Should Fail"))
 
 
-def test_register_module_with_empty_fields(service: ModuleService):
+@pytest.mark.asyncio
+async def test_register_module_with_empty_fields(service):
     with pytest.raises(ValidationError):
         ModuleCreate(
             provider=ProviderEnums.DIGIPOS,
