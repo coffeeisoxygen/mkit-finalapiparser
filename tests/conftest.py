@@ -1,8 +1,10 @@
+# ruff: noqa
 from pathlib import Path
 
 import pytest
 from app.config import get_settings
 from dotenv import load_dotenv
+from tests.fixtures.fx_token import auth_token
 
 PATHTOTESTENV = Path(__file__).parent.parent / ".env.test"
 
