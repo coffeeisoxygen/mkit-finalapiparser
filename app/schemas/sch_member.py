@@ -5,6 +5,7 @@ from pydantic import (
     Field,
     IPvAnyAddress,
     SecretStr,
+    field_validator,
 )
 
 
@@ -77,6 +78,16 @@ class MemberUpdate(BaseModel):
     ipaddress: IPvAnyAddress | None = None
     report_url: AnyHttpUrl | None = None
     allow_nosign: bool | None = None
+
+    @field_validator(
+        "name", "pin", "password", "ipaddress", "report_url", mode="before"
+    )
+    @classmethod
+    def empty_to_none(cls, value: object) -> object:
+        # treat empty string, False, and None as None
+        if value in (None, "", False):
+            return None
+        return value
 
 
 class MemberDelete(BaseModel):
