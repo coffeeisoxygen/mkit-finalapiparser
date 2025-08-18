@@ -11,7 +11,7 @@ from hypothesis import strategies as st
 # Helper strategies
 # =======================
 valid_url = st.from_regex(
-    r"https?://[a-zA-Z0-9.-]+(?:/[a-zA-Z0-9._-]*)*",
+    r"https?://[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}(?:/[a-zA-Z0-9._-]*)*",
     fullmatch=True,
 )
 

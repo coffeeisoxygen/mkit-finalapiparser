@@ -13,7 +13,7 @@ from app.schemas.sch_member import (
     MemberUpdate,
 )
 
-router = APIRouter(prefix="/member", tags=["Member"])
+router = APIRouter()
 
 
 # ---------------------------

@@ -2,9 +2,7 @@
 
 from fastapi import Depends
 
-from app.api.v1.member.rtr_member import router as member_router
-from app.api.v1.module.rtr_module import router as module_router
-from app.api.v1.user.rtr_user import router as user_router
+from app.api.v1 import member_router, module_router, user_router
 from app.deps.security import get_current_user
 
 
