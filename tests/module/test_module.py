@@ -1,6 +1,6 @@
 # pyright: reportArgumentType=false
 # ruff : noqa
-import app.custom.cst_exceptions as exc
+import app.custom.exceptions as exc
 import pytest
 from app.config import ProviderEnums
 from app.repositories.rep_module import InMemoryModuleRepository

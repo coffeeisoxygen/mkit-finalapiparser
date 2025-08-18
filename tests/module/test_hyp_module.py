@@ -1,5 +1,5 @@
 import pytest
-from app.custom.cst_exceptions import EntityNotFoundError
+from app.custom.exceptions import EntityNotFoundError
 from app.repositories.rep_module import InMemoryModuleRepository
 from app.schemas.sch_module import ModuleCreate, ModuleDelete, ModuleUpdate
 from app.service.srv_module import ModuleService

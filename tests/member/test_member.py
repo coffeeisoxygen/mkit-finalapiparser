@@ -1,4 +1,4 @@
-import app.custom.cst_exceptions as exc
+import app.custom.exceptions as exc
 import pytest
 from app.repositories.rep_member import InMemoryMemberRepository
 from app.schemas.sch_member import MemberCreate, MemberDelete, MemberUpdate
