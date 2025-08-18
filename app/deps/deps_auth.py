@@ -18,13 +18,22 @@ hasher_service = HasherService()
 def get_auth_service(
     user_repo: UserRepository = Depends(get_user_repo),
 ) -> AuthService:
-    """Provide AuthService instance for DI."""
+    """Provide a fully initialized AuthService for dependency injection.
+
+    Args:
+        user_repo (UserRepository): Repository to access user data.
+
+    Returns:
+        AuthService: Facade for login and token handling.
+    """
+    # Sub-services
     cred_service = CredentialService(user_repo=user_repo, hasher=hasher_service)
     token_service = TokenService(
         secret_key=settings.JWT_SECRET_KEY,
         algorithm=settings.JWT_ALGORITHM,
         expire_minutes=settings.JWT_ACCESS_TOKEN_EXPIRE_MINUTES,
     )
+    # AuthService facade
     return AuthService(
         credential_service=cred_service,
         token_service=token_service,
@@ -32,4 +41,5 @@ def get_auth_service(
     )
 
 
+# Annotated dependency for FastAPI endpoints
 DepAuthService: Annotated[AuthService, Depends(get_auth_service)]

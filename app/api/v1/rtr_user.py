@@ -1,11 +1,12 @@
+# app/api/v1/user_router.py
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordRequestForm
 
-from app.deps.deps_auth import DepAuthService
-from app.deps.deps_security import get_current_active_user
+from app.deps.deps_security import DepCurrentUser, get_auth_service
 from app.schemas.sch_user import Token, User
+from app.service.auth.auth_service import AuthService
 
 router = APIRouter(
     prefix="/api/v1/user",
@@ -13,6 +14,9 @@ router = APIRouter(
 )
 
 
+# ---------------------------
+# POST /api/v1/user/login
+# ---------------------------
 @router.post(
     "/login",
     response_model=Token,
@@ -29,24 +33,41 @@ router = APIRouter(
 )
 async def login_for_access_token(
     form_data: Annotated[OAuth2PasswordRequestForm, Depends()],
-    auth_service: DepAuthService,
+    auth_service: Annotated[AuthService, Depends(get_auth_service)],
 ) -> Token:
-    """Login and get an access token."""
-    user = auth_service.authenticate_user(form_data.username, form_data.password)
-    if not user:
+    """Login user dan dapatkan JWT access token.
+
+    Args:
+        form_data (OAuth2PasswordRequestForm): username & password dari form.
+        auth_service (DepAuthService): DI AuthService facade.
+
+    Returns:
+        Token: JWT access token.
+    """
+    token = auth_service.login(form_data.username, form_data.password)
+    if not token:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Incorrect username or password",
             headers={"WWW-Authenticate": "Bearer"},
         )
 
-    access_token = auth_service.create_access_token(username=user.username)
-    return Token(access_token=access_token, token_type="bearer")
+    return Token(access_token=token, token_type="bearer")
 
 
+# ---------------------------
+# GET /api/v1/user/me
+# ---------------------------
 @router.get("/me/", response_model=User)
 async def read_users_me(
-    current_user: Annotated[User, Depends(get_current_active_user)],
+    current_user: DepCurrentUser,
 ):
-    """Retrieve the current authenticated user."""
+    """Ambil data user yang sedang login dan aktif.
+
+    Args:
+        current_user (User): DI dependency, sudah valid login + active check.
+
+    Returns:
+        User: data user saat ini.
+    """
     return current_user
