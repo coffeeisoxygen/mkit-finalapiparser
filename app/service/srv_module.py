@@ -34,23 +34,18 @@ class ModuleService:
         moduleid = self._next_id()
         log = logger.bind(operation="create_module", moduleid=moduleid)
 
-        def _raise_exists():
+        # check duplicate
+        if self.repo.get(moduleid):
             log.error("Module already exists")
             raise EntityAlreadyExistsError(context={"moduleid": moduleid})
 
-        try:
-            if self.repo.get(moduleid):
-                _raise_exists()
-            module = ModuleInDB(
-                moduleid=moduleid,
-                **data.model_dump(),
-            )
-            self.repo.add(module.moduleid, module)
-            log.info("Module created successfully")
-            return ModulePublic(**module.model_dump())
-        except EntityAlreadyExistsError:
-            log.exception("Failed to create module")
-            raise
+        module = ModuleInDB(
+            moduleid=moduleid,
+            **data.model_dump(),
+        )
+        self.repo.add(module.moduleid, module)
+        log.info("Module created successfully")
+        return ModulePublic(**module.model_dump())
 
     # READ
     def get_module(self, moduleid: str) -> ModulePublic | None:
