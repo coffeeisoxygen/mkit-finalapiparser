@@ -168,7 +168,6 @@ omit = [
     "app/__init__.py",
     "app/_version.py",
     "app/mlogg/*"
-    "app/
 ]
 
 [tool.coverage.report]
