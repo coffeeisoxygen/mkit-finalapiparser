@@ -1,3 +1,4 @@
+# pyright: reportArgumentType = false
 import app.custom.exceptions as exc
 import pytest
 from app.repositories.rep_member import AsyncInMemoryMemberRepo
@@ -101,3 +102,91 @@ async def test_delete_member(name, pin, password, ipaddress, report_url, allow_n
     # pastikan not found
     with pytest.raises(exc.EntityNotFoundError):
         await service.get_member(created.memberid)
+
+
+@pytest.mark.asyncio
+async def test_create_member_with_empty_name():
+    service = MemberService(AsyncInMemoryMemberRepo())
+    with pytest.raises(Exception):  # noqa: B017
+        await service.create_member(
+            MemberCreate(
+                name="",
+                pin="123456",
+                password="password123",
+                ipaddress="192.168.1.100",  # pyright: ignore[reportArgumentType]
+                report_url="http://localhost/report",
+                allow_nosign=False,
+            )
+        )
+
+
+@pytest.mark.asyncio
+async def test_create_member_with_short_pin():
+    service = MemberService(AsyncInMemoryMemberRepo())
+    with pytest.raises(Exception):
+        await service.create_member(
+            MemberCreate(
+                name="Valid Name",
+                pin="123",  # too short
+                password="password123",
+                ipaddress="192.168.1.100",
+                report_url="http://localhost/report",
+                allow_nosign=False,
+            )
+        )
+
+
+@pytest.mark.asyncio
+async def test_create_member_with_invalid_ip():
+    service = MemberService(AsyncInMemoryMemberRepo())
+    with pytest.raises(Exception):
+        await service.create_member(
+            MemberCreate(
+                name="Valid Name",
+                pin="123456",
+                password="password123",
+                ipaddress="999.999.999.999",  # invalid IP
+                report_url="http://localhost/report",
+                allow_nosign=False,
+            )
+        )
+
+
+@pytest.mark.asyncio
+async def test_create_member_with_invalid_url():
+    service = MemberService(AsyncInMemoryMemberRepo())
+    with pytest.raises(Exception):
+        await service.create_member(
+            MemberCreate(
+                name="Valid Name",
+                pin="123456",
+                password="password123",
+                ipaddress="192.168.1.100",
+                report_url="not_a_url",  # invalid URL
+                allow_nosign=False,
+            )
+        )
+
+
+@pytest.mark.asyncio
+async def test_update_member_with_empty_name():
+    service = MemberService(AsyncInMemoryMemberRepo())
+    created = await service.create_member(
+        MemberCreate(
+            name="Valid Name",
+            pin="123456",
+            password="password123",
+            ipaddress="192.168.1.100",
+            report_url="http://localhost/report",
+            allow_nosign=False,
+        )
+    )
+    with pytest.raises(Exception):
+        await service.update_member(created.memberid, MemberUpdate(name=""))
+
+
+@pytest.mark.asyncio
+async def test_delete_nonexistent_member():
+    service = MemberService(AsyncInMemoryMemberRepo())
+    with pytest.raises(exc.EntityNotFoundError):
+        await service.remove_member(MemberDelete(memberid="NON_EXISTENT_ID"))
