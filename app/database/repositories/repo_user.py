@@ -15,7 +15,7 @@ class SQLiteUserRepository(IUserRepo):
         self.session = session
         self.autocommit = autocommit
         self.log = logger.bind(repo="SQLiteUserRepository")
-        self.log.info("Initialized with autocommit=%s", autocommit)
+        self.log.info(f"Initialized with autocommit={autocommit}")
 
         # NOTE: Service / caller wajib commit / rollback
         # kalau autocommit=False, maka repo hanya flush, tidak commit

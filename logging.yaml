@@ -1,7 +1,7 @@
 handlers:
   - sink: ext://sys.stdout
     level: DEBUG
-    format: "|<level>{level: <8}</level>| <cyan>{name}</cyan>:<cyan>{function}</cyan>:<cyan>{line}</cyan> |  <level>{message}</level> | <l>{extra}</>"
+    format: "|<level>{level: <8}</level>| <magenta>{name}</magenta>:<bold>{function}</bold>:<magenta>{line}</magenta> |  <level>{message}</level> | <l>{extra}</>"
     enqueue: true
     colorize: true
     diagnose: true

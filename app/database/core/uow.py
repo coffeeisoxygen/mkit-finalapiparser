@@ -17,9 +17,9 @@ class UnitOfWork:
         self.session = session
         self._committed = False
         self.log = logger.bind(uow="UnitOfWork")
-        self.log.info("UnitOfWork initialized")
+        self.log.debug("UnitOfWork initialized")
 
-    @logger_wraps(entry=True, exit=True, level="INFO")
+    @logger_wraps(entry=True, exit=True, level="DEBUG")
     async def __aenter__(self):
         return self
 
@@ -32,7 +32,7 @@ class UnitOfWork:
     async def rollback(self):
         await self.session.rollback()
 
-    @logger_wraps(entry=True, exit=True, level="INFO")
+    @logger_wraps(entry=True, exit=True, level="DEBUG")
     async def __aexit__(
         self,
         exc_type: type[BaseException] | None,
@@ -45,4 +45,4 @@ class UnitOfWork:
         elif not self._committed:
             # auto commit jika belum ada commit eksplisit
             await self.commit()
-        self.log.info("UnitOfWork exited")
+        self.log.debug("UnitOfWork exited")
