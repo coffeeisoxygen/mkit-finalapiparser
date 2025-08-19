@@ -66,9 +66,6 @@ class UserInDB(BaseModel):
 class AdminSeeder(UserBase):
     """Schema untuk seeding admin user."""
 
-    username: str
-    email: str
-    full_name: str
     password: str
     is_superuser: bool = True
     is_active: bool = True
