@@ -2,6 +2,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.custom.exceptions.cst_exceptions import DataDuplicationError, DataNotFoundError
+from app.database.core import valid_record_filter
 from app.interfaces.intf_user import IUserRepo
 from app.mlogg import logger
 from app.models.db_user import User
@@ -54,14 +55,16 @@ class SQLiteUserRepository(IUserRepo):
         return UserInDB.model_validate(new_user)
 
     async def get_by_id(self, user_id: int) -> UserInDB:
-        user_obj = await self.session.get(User, user_id)
+        stmt = select(User).where(User.id == user_id, valid_record_filter(User))
+        result = await self.session.execute(stmt)
+        user_obj = result.scalar_one_or_none()
         if not user_obj:
             self.log.error("Data not found", method="get_by_id", user_id=user_id)
             raise DataNotFoundError(context={"user_id": user_id})
         return UserInDB.model_validate(user_obj)
 
     async def get_by_username(self, username: str) -> UserInDB:
-        stmt = select(User).where(User.username == username)
+        stmt = select(User).where(User.username == username, valid_record_filter(User))
         result = await self.session.execute(stmt)
         user_obj = result.scalar_one_or_none()
         if not user_obj:
@@ -72,7 +75,7 @@ class SQLiteUserRepository(IUserRepo):
         return UserInDB.model_validate(user_obj)
 
     async def list_all(self, skip: int = 0, limit: int = 100) -> list[UserPublic]:
-        stmt = select(User).offset(skip).limit(limit)
+        stmt = select(User).where(valid_record_filter(User)).offset(skip).limit(limit)
         result = await self.session.execute(stmt)
         users = result.scalars().all()
         return [UserPublic.model_validate(u) for u in users]

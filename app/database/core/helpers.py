@@ -3,7 +3,7 @@
 from typing import Any
 
 
-def valid_record_query(model: Any):
+def valid_record_filter(model: Any):
     """Validates the record query for the given model.
 
     This function constructs a query condition to filter valid records
