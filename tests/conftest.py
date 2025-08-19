@@ -2,11 +2,10 @@ import asyncio
 import os
 from pathlib import Path
 
-import app.database.session as db_session
+import app.database as db_session
 import pytest
 from app.config import get_settings
-from app.database.session import sessionmanager
-from app.database.table import create_tables
+from app.database import DatabaseSessionManager, create_tables
 from app.models import Base
 from dotenv import load_dotenv
 from loguru import logger
@@ -17,7 +16,7 @@ PATHTOTESTENV = Path(__file__).parent.parent / ".env.test"
 # --- SessionManager Fixture ---
 @pytest.fixture(scope="session")
 def test_sessionmanager():
-    return sessionmanager
+    return DatabaseSessionManager
 
 
 # --- Environment ---
@@ -30,11 +29,15 @@ def setup_test_env():
     logger.info(f"[conftest] DB path: {settings.DB_URL}")
     logger.info(f"[conftest] CWD: {os.getcwd()}")
     assert settings.APP_ENV == "TESTING"
-    db_session.sessionmanager = db_session.DatabaseSessionManager(settings.DB_URL)
-    logger.info(f"Engine id after re-init: {id(db_session.sessionmanager.engine)}")
+    db_session.DatabaseSessionManager = db_session.DatabaseSessionManager(
+        settings.DB_URL
+    )
+    logger.info(
+        f"Engine id after re-init: {id(db_session.DatabaseSessionManager.engine)}"
+    )
 
     asyncio.get_event_loop().run_until_complete(
-        create_tables(db_session.sessionmanager.engine)
+        create_tables(db_session.DatabaseSessionManager.engine)
     )
 
 
@@ -42,6 +45,6 @@ def setup_test_env():
 @pytest.fixture(scope="session", autouse=True)
 async def setup_test_db():
     yield
-    if db_session.sessionmanager.engine is not None:
-        async with db_session.sessionmanager.engine.begin() as conn:
+    if db_session.DatabaseSessionManager.engine is not None:
+        async with db_session.DatabaseSessionManager.engine.begin() as conn:
             await conn.run_sync(lambda sync_conn: Base.metadata.drop_all(sync_conn))
