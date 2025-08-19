@@ -3,7 +3,6 @@ from types import TracebackType
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.mlogg import logger
-from app.mlogg.utils import logger_wraps
 
 
 class UnitOfWork:
@@ -16,33 +15,36 @@ class UnitOfWork:
     def __init__(self, session: AsyncSession):
         self.session = session
         self._committed = False
-        self.log = logger.bind(uow="UnitOfWork")
-        self.log.debug("UnitOfWork initialized")
+        with logger.contextualize(uow="UnitOfWork"):
+            logger.debug("UnitOfWork initialized")
 
-    @logger_wraps(entry=True, exit=True, level="DEBUG")
     async def __aenter__(self):
+        with logger.contextualize(uow="UnitOfWork"):
+            logger.debug("__aenter__ called")
         return self
 
-    @logger_wraps(entry=True, exit=True, level="INFO")
     async def commit(self):
         await self.session.commit()
         self._committed = True
+        with logger.contextualize(uow="UnitOfWork"):
+            logger.info("commit called")
 
-    @logger_wraps(entry=True, exit=True, level="INFO")
     async def rollback(self):
         await self.session.rollback()
+        with logger.contextualize(uow="UnitOfWork"):
+            logger.info("rollback called")
 
-    @logger_wraps(entry=True, exit=True, level="DEBUG")
     async def __aexit__(
         self,
         exc_type: type[BaseException] | None,
         exc: BaseException | None,
         tb: TracebackType | None,
     ):
+        with logger.contextualize(uow="UnitOfWork"):
+            logger.debug("__aexit__ called", exc_type=exc_type, exc=exc)
         if exc_type:
-            # ada exception -> rollback
             await self.rollback()
         elif not self._committed:
-            # auto commit jika belum ada commit eksplisit
             await self.commit()
-        self.log.debug("UnitOfWork exited")
+        with logger.contextualize(uow="UnitOfWork"):
+            logger.debug("UnitOfWork exited")

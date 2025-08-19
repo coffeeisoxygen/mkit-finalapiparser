@@ -6,6 +6,7 @@
 import functools
 import sys
 import time
+import asyncio
 
 from loguru import logger
 
@@ -44,18 +45,41 @@ def logger_wraps(*, entry=True, exit=True, level="DEBUG"):
         name = func.__name__
 
         @functools.wraps(func)
-        def wrapped(*args, **kwargs):
+        def sync_wrapped(*args, **kwargs):
             logger_ = logger.opt(depth=1)
             if entry:
                 logger_.log(
                     level, "Entering '{}' (args={}, kwargs={})", name, args, kwargs
                 )
+            start = time.time()
             result = func(*args, **kwargs)
+            end = time.time()
+            duration = end - start
+            logger_.log(level, "Execution time for '{}': {:.6f}s", name, duration)
             if exit:
                 logger_.log(level, "Exiting '{}' (result={})", name, result)
             return result
 
-        return wrapped
+        @functools.wraps(func)
+        async def async_wrapped(*args, **kwargs):
+            logger_ = logger.opt(depth=1)
+            if entry:
+                logger_.log(
+                    level, "Entering '{}' (args={}, kwargs={})", name, args, kwargs
+                )
+            start = time.time()
+            result = await func(*args, **kwargs)
+            end = time.time()
+            duration = end - start
+            logger_.log(level, "Execution time for '{}': {:.6f}s", name, duration)
+            if exit:
+                logger_.log(level, "Exiting '{}' (result={})", name, result)
+            return result
+
+        if asyncio.iscoroutinefunction(func):
+            return async_wrapped
+        else:
+            return sync_wrapped
 
     return wrapper
 
