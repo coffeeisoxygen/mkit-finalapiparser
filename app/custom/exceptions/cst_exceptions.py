@@ -49,6 +49,27 @@ class AppExceptionError(Exception):
         return f"<{self.__class__.__name__} status={self.status_code} message={self.message!r}>"
 
 
+class DataIntegrityError(AppExceptionError):
+    """Exception raised for data integrity errors."""
+
+    default_message = "Data integrity error occurred."
+    status_code = 409
+
+
+class DataNotFoundError(DataIntegrityError):
+    """Exception raised when data is not found."""
+
+    default_message = "Data not found."
+    status_code = 404
+
+
+class DataDuplicationError(DataIntegrityError):
+    """Exception raised for data duplication errors."""
+
+    default_message = "Data duplication error occurred."
+    status_code = 409
+
+
 class EntityNotFoundError(AppExceptionError):
     """Exception raised when an entity is not found."""
 
