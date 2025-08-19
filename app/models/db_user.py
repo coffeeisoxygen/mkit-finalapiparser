@@ -10,13 +10,17 @@ class User(Base, AuditMixin):
 
     __tablename__ = "users"
 
-    id: Mapped[int] = mapped_column(Integer, primary_key=True)
-    username: Mapped[str] = mapped_column(String, unique=True, nullable=False)
-    email: Mapped[str] = mapped_column(String, unique=True, nullable=False)
+    id: Mapped[int] = mapped_column(
+        Integer, primary_key=True, autoincrement=True, index=True
+    )
+    username: Mapped[str] = mapped_column(
+        String, unique=True, nullable=False, index=True
+    )
+    email: Mapped[str] = mapped_column(String, unique=True, nullable=False, index=True)
     full_name: Mapped[str] = mapped_column(String, nullable=False)
     hashed_password: Mapped[str] = mapped_column(String, nullable=False)
 
-    is_superuser: Mapped[bool] = mapped_column(Boolean, default=False)
+    is_superuser: Mapped[bool] = mapped_column(Boolean, default=False, index=True)
 
     # Audit fields & methods inherited from AuditMixin
 

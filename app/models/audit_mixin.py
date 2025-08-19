@@ -3,7 +3,7 @@
 Can be inherited by any SQLAlchemy model for standardized audit trail.
 """
 
-from datetime import datetime
+from datetime import UTC, datetime
 
 from sqlalchemy import DateTime, Integer, func
 from sqlalchemy.orm import Mapped, mapped_column
@@ -13,17 +13,20 @@ class AuditMixin:
     """Audit and soft delete functionality for SQLAlchemy models."""
 
     created_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), server_default=func.now()
+        DateTime(timezone=True), server_default=func.now(), index=True
     )
     updated_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), server_default=func.now(), onupdate=func.now()
+        DateTime(timezone=True),
+        server_default=func.now(),
+        onupdate=func.now(),
+        index=True,
     )
     deleted_at: Mapped[datetime | None] = mapped_column(
-        DateTime(timezone=True), nullable=True
+        DateTime(timezone=True), nullable=True, index=True
     )
-    deleted_by: Mapped[int | None] = mapped_column(Integer, nullable=True)
-    created_by: Mapped[int | None] = mapped_column(Integer, nullable=True)
-    updated_by: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    deleted_by: Mapped[int | None] = mapped_column(Integer, nullable=True, index=True)
+    created_by: Mapped[int | None] = mapped_column(Integer, nullable=True, index=True)
+    updated_by: Mapped[int | None] = mapped_column(Integer, nullable=True, index=True)
 
     """Audit and soft delete functionality for SQLAlchemy models.
 
@@ -38,7 +41,7 @@ class AuditMixin:
 
     def soft_delete(self, user_id=None):  # noqa: ANN001
         """Mark record as soft deleted."""
-        self.deleted_at = datetime.utcnow()
+        self.deleted_at = datetime.now(UTC)
         self.deleted_by = user_id
 
     def restore(self):

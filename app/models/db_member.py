@@ -17,12 +17,16 @@ class Member(Base, AuditMixin):
     )
     name: Mapped[str] = mapped_column(String(100), nullable=False)
     ipaddress: Mapped[str] = mapped_column(
-        String(45), nullable=False
+        String(45), nullable=False, index=True
     )  # cukup utk IPv4/IPv6 teks
-    report_url: Mapped[str] = mapped_column(String(2048), nullable=False)  # URL panjang
+    report_url: Mapped[str] = mapped_column(
+        String(2048), nullable=False, index=True
+    )  # URL panjang
     pin: Mapped[str] = mapped_column(String(255), nullable=False)
     password: Mapped[str] = mapped_column(String(255), nullable=False)
-    allow_nosign: Mapped[bool] = mapped_column(Boolean(), default=False, nullable=False)
+    allow_nosign: Mapped[bool] = mapped_column(
+        Boolean(), default=False, nullable=False, index=True
+    )
 
     # Audit fields & methods inherited from AuditMixin
 
