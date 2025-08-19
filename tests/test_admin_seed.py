@@ -2,6 +2,7 @@
 
 import pytest
 from app.models.db_user import User
+from app.service.security.srv_hasher import HasherService
 from app.service.user.srv_admin_seed import AdminSeedService
 from sqlalchemy import delete, insert, select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -9,7 +10,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 @pytest.mark.asyncio
 async def test_seed_default_admin_creates_admin(test_db_session: AsyncSession):
-    service = AdminSeedService(test_db_session)
+    service = AdminSeedService(test_db_session, hasher=HasherService())
     # Ensure no superuser exists
     await test_db_session.execute(delete(User))
     await test_db_session.commit()
@@ -25,7 +26,7 @@ async def test_seed_default_admin_creates_admin(test_db_session: AsyncSession):
 
 @pytest.mark.asyncio
 async def test_seed_default_admin_skips_if_exists(test_db_session: AsyncSession):
-    service = AdminSeedService(test_db_session)
+    service = AdminSeedService(test_db_session, hasher=HasherService())
     await test_db_session.execute(delete(User))
     await test_db_session.commit()
     await service.seed_default_admin()
@@ -35,7 +36,7 @@ async def test_seed_default_admin_skips_if_exists(test_db_session: AsyncSession)
 
 @pytest.mark.asyncio
 async def test_can_delete_user_false_for_superuser(test_db_session: AsyncSession):
-    service = AdminSeedService(test_db_session)
+    service = AdminSeedService(test_db_session, hasher=HasherService())
     await test_db_session.execute(delete(User))
     await test_db_session.commit()
     await service.seed_default_admin()
@@ -49,7 +50,7 @@ async def test_can_delete_user_false_for_superuser(test_db_session: AsyncSession
 
 @pytest.mark.asyncio
 async def test_can_delete_user_true_for_normal_user(test_db_session: AsyncSession):
-    service = AdminSeedService(test_db_session)
+    service = AdminSeedService(test_db_session, hasher=HasherService())
     await test_db_session.execute(delete(User))
     await test_db_session.commit()
     # Create normal user

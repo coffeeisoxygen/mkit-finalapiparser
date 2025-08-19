@@ -11,18 +11,20 @@ condition to meet:
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.database.repositories.repo_user import SQLiteUserRepository
 from app.mlogg import logger
 from app.models.db_user import User
 from app.schemas.sch_user import AdminSeeder, UserCreate
-from app.service.user.srv_user_crud import UserCrudService
+from app.service.security.srv_hasher import HasherService
 
 
 class AdminSeedService:
     """Service to seed default admin and protect sysadmin accounts."""
 
-    def __init__(self, session: AsyncSession):
+    def __init__(self, session: AsyncSession, hasher: HasherService | None = None):
         self.session = session
-        self.user_service = UserCrudService(session)
+
+        self.hasher = hasher or HasherService()
         self.log = logger.bind(service="AdminSeedService")
 
     async def has_active_superuser(self) -> bool:
@@ -59,9 +61,15 @@ class AdminSeedService:
             full_name=admin.full_name,
             password=admin.password,
         )
-        await self.user_service.create_user(
+        # Hash password
+        hashed_password = self.hasher.hash_value(user_create.password)
+
+        repo = SQLiteUserRepository(self.session, autocommit=True)
+        await repo.create(
             user_create,
+            hashed_password,
             actor_id=None,
+            is_superuser=True,
         )
         self.log.info("Default admin seeded.", username=admin.username)
         return True
