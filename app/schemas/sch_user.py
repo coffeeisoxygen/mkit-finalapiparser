@@ -56,4 +56,14 @@ class UserInDB(BaseModel):
     deleted_at: datetime | None
     deleted_by: int | None
 
-    model_config = {"from_attributes": True, "populate_by_name": True}
+
+class AdminSeeder(BaseModel):
+    """Schema untuk seeding admin user."""
+
+    username: str
+    email: str
+    full_name: str
+    password: str
+    is_superuser: bool = True
+    is_active: bool = True
+    is_deleted: bool = False
