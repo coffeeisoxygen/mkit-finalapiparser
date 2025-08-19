@@ -51,10 +51,9 @@ class AuditMixin:
 
     @property
     def is_deleted(self):
-        """Check if record is soft deleted."""
-        return self.deleted_at is not None
+        """Check if record is soft deleted (data logic).
 
-    @property
-    def is_active(self):
-        """Check if record is active (not deleted)."""
-        return self.deleted_at is None
+        Returns:
+            bool: True if deleted, False otherwise
+        """
+        return self.deleted_at is not None

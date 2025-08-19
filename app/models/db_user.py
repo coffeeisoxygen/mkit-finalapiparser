@@ -21,6 +21,8 @@ class User(Base, AuditMixin):
     hashed_password: Mapped[str] = mapped_column(String, nullable=False)
 
     is_superuser: Mapped[bool] = mapped_column(Boolean, default=False, index=True)
+    is_active: Mapped[bool] = mapped_column(Boolean, default=True, index=True)
+    is_deleted_flag: Mapped[bool] = mapped_column(Boolean, default=False, index=True)
 
     # Audit fields & methods inherited from AuditMixin
 

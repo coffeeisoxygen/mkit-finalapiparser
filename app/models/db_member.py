@@ -28,6 +28,8 @@ class Member(Base, AuditMixin):
         Boolean(), default=False, nullable=False, index=True
     )
 
+    is_active: Mapped[bool] = mapped_column(Boolean, default=True, index=True)
+    is_deleted_flag: Mapped[bool] = mapped_column(Boolean, default=False, index=True)
     # Audit fields & methods inherited from AuditMixin
 
     def __repr__(self) -> str:
