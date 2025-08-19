@@ -4,8 +4,7 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordRequestForm
 
 from app.deps.deps_security import DepCurrentUser, get_auth_service
-from app.schemas.sch_token import Token
-from app.schemas.sch_user import UserResponse
+from app.schemas.sch_token import Token, UserToken
 from app.service.auth.auth_service import AuthService
 
 router = APIRouter(
@@ -54,16 +53,9 @@ async def login_for_access_token(
 # ---------------------------
 # GET /api/v1/user/me
 # ---------------------------
-@router.get("/me/", response_model=UserResponse)
+@router.get("/me/", response_model=UserToken)
 async def read_users_me(
     current_user: DepCurrentUser,
 ):
-    """Ambil data user yang sedang login dan aktif.
-
-    Args:
-        current_user (UserToken): DI dependency, sudah valid login + active check.
-
-    Returns:
-        UserToken: data user saat ini.
-    """
+    """Ambil data user yang sedang login dan aktif."""
     return current_user
