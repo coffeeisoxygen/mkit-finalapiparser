@@ -16,33 +16,30 @@ class SQLiteUserRepository(IUserRepo):
 
         Args:
             session: AsyncSession instance.
-            autocommit: If True, repo will commit after each write op. If False, caller/UoW must commit.
+            autocommit: If True, repo will commit after each write op.
+                        If False, caller/UoW must manage commit/rollback.
         """
         self.session = session
         self.autocommit = autocommit
-        logger.bind(repo="SQLiteUserRepository").info(
-            "SQLiteUserRepository initialized with autocommit=%s", autocommit
-        )
+        self.log = logger.bind(repo=self.__class__.__name__)
+        self.log.info("Initialized with autocommit=%s", autocommit)
+
+        # NOTE: Service / caller wajib commit / rollback
+        # kalau autocommit=False, maka repo hanya flush, tidak commit
 
     async def _check_duplicate_user(self, username: str, email: str) -> None:
-        """Helper to check for duplicate username or email.
-
-        Raises:
-            DataDuplicationError: If a user with the same username or email exists.
-        """
+        """Helper to check for duplicate username or email."""
         stmt = select(User).where((User.username == username) | (User.email == email))
         result = await self.session.execute(stmt)
         existing = result.scalar_one_or_none()
         if existing:
-            logger.bind(
-                method="_check_duplicate_user", username=username, email=email
-            ).exception("Data duplication error")
+            self.log.error("Data duplication error", username=username, email=email)
             raise DataDuplicationError(context={"username": username, "email": email})
 
     async def create(
         self, user: UserCreate, hashed_password: str, actor_id: int | None = None
     ) -> UserInDB:
-        """Create user. Caller is responsible for commit/rollback if autocommit=False."""
+        """Create user. Caller responsible for commit/rollback if autocommit=False."""
         await self._check_duplicate_user(user.username, user.email)
 
         new_user = User(
@@ -54,35 +51,35 @@ class SQLiteUserRepository(IUserRepo):
             created_by=actor_id,
         )
         self.session.add(new_user)
+
         if self.autocommit:
             await self.session.commit()
             await self.session.refresh(new_user)
         else:
             await self.session.flush()
+
+        self.log.info("User created", username=user.username, actor_id=actor_id)
         return UserInDB.model_validate(new_user)
 
-    async def get_by_id(self, user_id: int) -> UserInDB | None:
-        """Get by id database. Raises DataNotFoundError if not found."""
+    async def get_by_id(self, user_id: int) -> UserInDB:
         user_obj = await self.session.get(User, user_id)
         if not user_obj:
-            logger.bind(method="get_by_id", user_id=user_id).exception("Data not found")
+            self.log.error("Data not found", method="get_by_id", user_id=user_id)
             raise DataNotFoundError(context={"user_id": user_id})
         return UserInDB.model_validate(user_obj)
 
-    async def get_by_username(self, username: str) -> UserInDB | None:
-        """Get by username. Raises DataNotFoundError if not found."""
+    async def get_by_username(self, username: str) -> UserInDB:
         stmt = select(User).where(User.username == username)
         result = await self.session.execute(stmt)
         user_obj = result.scalar_one_or_none()
         if not user_obj:
-            logger.bind(method="get_by_username", username=username).exception(
-                "Data not found"
+            self.log.error(
+                "Data not found", method="get_by_username", username=username
             )
             raise DataNotFoundError(context={"username": username})
         return UserInDB.model_validate(user_obj)
 
     async def list_all(self, skip: int = 0, limit: int = 100) -> list[UserPublic]:
-        """Returns a list of all users."""
         stmt = select(User).offset(skip).limit(limit)
         result = await self.session.execute(stmt)
         users = result.scalars().all()
@@ -90,44 +87,85 @@ class SQLiteUserRepository(IUserRepo):
 
     async def update(
         self, user_id: int, data: UserUpdate, actor_id: int | None = None
-    ) -> UserInDB | None:
-        """Update user data. Caller is responsible for commit/rollback if autocommit=False."""
+    ) -> UserInDB:
         user_obj = await self.session.get(User, user_id)
         if not user_obj:
-            return None
+            self.log.error(
+                "Data not found for update",
+                method="update",
+                user_id=user_id,
+                data=data.model_dump(),
+            )
+            raise DataNotFoundError(
+                context={"user_id": user_id, "data": data.model_dump()}
+            )
 
         update_data = data.model_dump(exclude_unset=True)
         if "password" in update_data:
-            # NOTE: hashed_password harus dihandle di service
-            update_data.pop("password")
+            update_data.pop("password")  # NOTE: hashing handled in service
 
         for key, value in update_data.items():
             setattr(user_obj, key, value)
 
         user_obj.updated_by = actor_id
-        if self.autocommit:
-            await self.session.commit()
-            await self.session.refresh(user_obj)
-        else:
-            await self.session.flush()
+        self.log.info(
+            "Updating user record",
+            method="update",
+            user_id=user_id,
+            update_data=update_data,
+        )
+        try:
+            if self.autocommit:
+                await self.session.commit()
+                await self.session.refresh(user_obj)
+            else:
+                await self.session.flush()
+        except Exception as e:
+            self.log.exception(
+                "Exception during user update", user_id=user_id, error=str(e)
+            )
+            raise
         return UserInDB.model_validate(user_obj)
 
     async def delete(self, user_id: int) -> None:
-        """Hard delete user. Caller is responsible for commit/rollback if autocommit=False."""
         user_obj = await self.session.get(User, user_id)
-        if user_obj:
+        if not user_obj:
+            self.log.error("Data not found for delete", user_id=user_id)
+            raise DataNotFoundError(context={"user_id": user_id})
+
+        self.log.info("Deleting user record", user_id=user_id)
+        try:
             await self.session.delete(user_obj)
             if self.autocommit:
                 await self.session.commit()
             else:
                 await self.session.flush()
+        except Exception as e:
+            self.log.exception(
+                "Exception during user delete", user_id=user_id, error=str(e)
+            )
+            raise
 
     async def soft_delete(self, user_id: int, actor_id: int) -> None:
-        """Soft delete user (pakai AuditMixin). Caller is responsible for commit/rollback if autocommit=False."""
         user_obj = await self.session.get(User, user_id)
-        if user_obj:
+        if not user_obj:
+            self.log.error(
+                "Data not found for soft delete", method="soft_delete", user_id=user_id
+            )
+            raise DataNotFoundError(context={"user_id": user_id, "actor_id": actor_id})
+
+        self.log.info("Soft deleting user record", user_id=user_id, actor_id=actor_id)
+        try:
             user_obj.soft_delete(actor_id)
             if self.autocommit:
                 await self.session.commit()
             else:
                 await self.session.flush()
+        except Exception as e:
+            self.log.exception(
+                "Exception during user soft delete",
+                method="soft_delete",
+                user_id=user_id,
+                error=str(e),
+            )
+            raise
