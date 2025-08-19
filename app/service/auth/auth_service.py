@@ -19,11 +19,11 @@ class AuthService:
         """Login user, return JWT token jika sukses.
 
         Args:
-                username (str): Username user.
-                password (str): Password plain user.
+            username (str): Username user.
+            password (str): Password plain user.
 
         Returns:
-                str: JWT token string.
+            str: JWT token string.
         """
         user = await self.cred.authenticate(username, password)
         # user: UserPasswordToken (schema, sudah include info user)
@@ -40,17 +40,17 @@ class AuthService:
         """Ambil info user dari JWT token (tanpa query DB).
 
         Args:
-                token (str): JWT token string.
+            token (str): JWT token string.
 
         Returns:
-                UserToken: Info user dari payload JWT.
+            UserToken: Info user dari payload JWT.
         """
         payload = self.token.decode_token(token)
         try:
             return UserToken(
-                username=payload.get("sub"),
-                email=payload.get("email"),
-                full_name=payload.get("full_name"),
+                username=payload.get("sub") or "",
+                email=payload.get("email") or "",
+                full_name=payload.get("full_name") or "",
                 is_superuser=payload.get("is_superuser", False),
                 is_active=payload.get("is_active", True),
             )
