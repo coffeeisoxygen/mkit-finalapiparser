@@ -1,11 +1,12 @@
-from sqlalchemy import Boolean, DateTime, Integer, String, func
+from sqlalchemy import Boolean, Integer, String
 from sqlalchemy.orm import mapped_column
 from sqlalchemy.orm.properties import MappedColumn
 
 from app.models import Base
+from app.models.audit_mixin import AuditMixin
 
 
-class User(Base):
+class User(Base, AuditMixin):
     """schema untuk user / admin atau pengelola API."""
 
     __tablename__ = "users"
@@ -15,23 +16,10 @@ class User(Base):
     email: MappedColumn[str] = mapped_column(String, unique=True, nullable=False)
     full_name: MappedColumn[str] = mapped_column(String, nullable=False)
     hashed_password: MappedColumn[str] = mapped_column(String, nullable=False)
-    is_active: MappedColumn[bool] = mapped_column(Boolean, default=True)
+
     is_superuser: MappedColumn[bool] = mapped_column(Boolean, default=False)
 
-    created_at: MappedColumn[DateTime] = mapped_column(
-        DateTime(timezone=True), server_default=func.now()
-    )
-
-    updated_at: MappedColumn[DateTime] = mapped_column(
-        DateTime(timezone=True), server_default=func.now(), onupdate=func.now()
-    )
-
-    is_deleted: MappedColumn[bool] = mapped_column(
-        Boolean(), default=False, nullable=False
-    )
-    deleted_at: MappedColumn[DateTime] = mapped_column(
-        DateTime(timezone=True), default=None, nullable=True
-    )
+    # Audit fields & methods inherited from AuditMixin
 
     def __repr__(self) -> str:
         return f"<User id={self.id} email={self.email} full_name={self.full_name}>"
