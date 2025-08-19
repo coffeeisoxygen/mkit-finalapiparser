@@ -31,8 +31,8 @@ class TokenService:
         """
         expire = datetime.now(UTC) + timedelta(minutes=self.expire_minutes)
         payload = {
-            "sub": str(user.id),  # JWT subject harus string
-            "id": user.id,  # tetap simpan id untuk audit
+            "sub": str(user.id),
+            "id": user.id,
             "username": user.username,
             "is_superuser": user.is_superuser,
             "is_active": user.is_active,

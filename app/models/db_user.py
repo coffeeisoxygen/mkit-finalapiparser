@@ -1,8 +1,9 @@
-from sqlalchemy import Boolean, Integer, String
+from sqlalchemy import Boolean, String
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.models import Base
 from app.models.audit_mixin import AuditMixin
+from app.models.ulid_type import ULID, ULIDType
 
 
 class User(Base, AuditMixin):
@@ -10,8 +11,8 @@ class User(Base, AuditMixin):
 
     __tablename__ = "users"
 
-    id: Mapped[int] = mapped_column(
-        Integer, primary_key=True, autoincrement=True, index=True
+    id: Mapped[ULID] = mapped_column(
+        ULIDType(), primary_key=True, default=lambda: ULID()
     )
     username: Mapped[str] = mapped_column(
         String, unique=True, nullable=False, index=True
