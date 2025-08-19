@@ -2,7 +2,7 @@
 from app.custom.exceptions.cst_exceptions import UserNotFoundError, UserPasswordError
 from app.mlogg import logger
 from app.repositories.memory.rep_user import UserRepository
-from app.schemas.sch_user import UserInDB
+from app.schemas.sch_user import UserInDBD
 from app.service.security.srv_hasher import HasherService
 
 
@@ -14,7 +14,7 @@ class CredentialService:
         self.hasher = hasher
         logger.bind(service="CredentialService").debug("CredentialService initialized")
 
-    def authenticate(self, username: str, password: str) -> UserInDB | None:
+    def authenticate(self, username: str, password: str) -> UserInDBD | None:
         user = self.user_repo.get(username)
         if not user:
             logger.bind(service="CredentialService").warning(

@@ -1,4 +1,4 @@
-from app.schemas.sch_user import UserInDB
+from app.schemas.sch_user import UserInDBD
 
 fake_users_db = {
     "Admin": {
@@ -19,7 +19,7 @@ class UserRepository:
 
     def get(self, username: str):
         user_dict = self._db.get(username)
-        return UserInDB(**user_dict) if user_dict else None
+        return UserInDBD(**user_dict) if user_dict else None
 
     def all(self):
-        return [UserInDB(**user) for user in self._db.values()]
+        return [UserInDBD(**user) for user in self._db.values()]

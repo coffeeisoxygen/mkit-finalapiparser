@@ -1,7 +1,7 @@
 # app/service/auth/auth_service.py
 from app.custom.exceptions.cst_exceptions import AuthError
 from app.repositories.memory.rep_user import UserRepository
-from app.schemas.sch_user import UserInDB
+from app.schemas.sch_user import UserInDBD
 from app.service.auth.credential_service import CredentialService
 from app.service.auth.token_service import TokenService
 
@@ -27,7 +27,7 @@ class AuthService:
         return self.token.create_token(user.username)
 
     # ---- token → user ----
-    def get_user_from_token(self, token: str) -> UserInDB:
+    def get_user_from_token(self, token: str) -> UserInDBD:
         payload = self.token.decode_token(token)
         username = payload.get("sub")
         if not username:

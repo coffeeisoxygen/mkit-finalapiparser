@@ -1,6 +1,5 @@
 from sqlalchemy import Boolean, Integer, String
-from sqlalchemy.orm import mapped_column
-from sqlalchemy.orm.properties import MappedColumn
+from sqlalchemy.orm import Mapped, mapped_column
 
 from app.models import Base
 from app.models.audit_mixin import AuditMixin
@@ -11,13 +10,13 @@ class User(Base, AuditMixin):
 
     __tablename__ = "users"
 
-    id: MappedColumn[int] = mapped_column(Integer, primary_key=True)
-    username: MappedColumn[str] = mapped_column(String, unique=True, nullable=False)
-    email: MappedColumn[str] = mapped_column(String, unique=True, nullable=False)
-    full_name: MappedColumn[str] = mapped_column(String, nullable=False)
-    hashed_password: MappedColumn[str] = mapped_column(String, nullable=False)
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    username: Mapped[str] = mapped_column(String, unique=True, nullable=False)
+    email: Mapped[str] = mapped_column(String, unique=True, nullable=False)
+    full_name: Mapped[str] = mapped_column(String, nullable=False)
+    hashed_password: Mapped[str] = mapped_column(String, nullable=False)
 
-    is_superuser: MappedColumn[bool] = mapped_column(Boolean, default=False)
+    is_superuser: Mapped[bool] = mapped_column(Boolean, default=False)
 
     # Audit fields & methods inherited from AuditMixin
 
