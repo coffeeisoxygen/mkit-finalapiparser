@@ -1,9 +1,10 @@
+from sqlalchemy.ext.asyncio import AsyncSession
+
 from app.custom.exceptions.cst_exceptions import UserNotFoundError, UserPasswordError
 from app.database.repositories.repo_user import SQLiteUserRepository
 from app.mlogg import logger
 from app.schemas.sch_token import UserPasswordToken
 from app.service.security.srv_hasher import HasherService
-from sqlalchemy.ext.asyncio import AsyncSession
 
 
 class CredentialService:
@@ -47,6 +48,7 @@ class CredentialService:
             raise UserPasswordError("Incorrect password.")
         self.log.info("User authenticated successfully", username=username)
         return UserPasswordToken(
+            id=user.id,
             username=user.username,
             email=user.email,
             full_name=user.full_name,

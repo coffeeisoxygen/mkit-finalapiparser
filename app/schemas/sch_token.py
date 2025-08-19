@@ -9,6 +9,7 @@ from app.schemas.sch_user import EmailStr
 class UserToken(BaseModel):
     """Schema untuk user token."""
 
+    id: int
     username: str
     email: EmailStr
     full_name: str
@@ -31,5 +32,6 @@ class Token(BaseModel):
 
 
 class TokenData(BaseModel):
+    id: int
     username: str | None = None
     is_superuser: bool = False

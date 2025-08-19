@@ -28,12 +28,15 @@ class AuthService:
         user = await self.cred.authenticate(username, password)
         # user: UserPasswordToken (schema, sudah include info user)
         user_token = UserToken(
+            id=user.id,
             username=user.username,
             email=user.email,
             full_name=user.full_name,
             is_superuser=user.is_superuser,
             is_active=user.is_active,
         )
+        # Ensure "sub" is a string (username)
+        # --- FIX: pass username as "sub" in token payload ---
         return self.token.create_token(user_token)
 
     def get_user_from_token(self, token: str) -> UserToken:
@@ -47,8 +50,13 @@ class AuthService:
         """
         payload = self.token.decode_token(token)
         try:
+            id_val = payload.get("id")
+            if id_val is None:
+                raise AuthError("Token payload missing 'id' field")  # noqa: TRY301
+            # "sub" is username (str)
             return UserToken(
-                username=payload.get("sub") or "",
+                id=int(id_val),
+                username=payload.get("username") or payload.get("sub") or "",
                 email=payload.get("email") or "",
                 full_name=payload.get("full_name") or "",
                 is_superuser=payload.get("is_superuser", False),

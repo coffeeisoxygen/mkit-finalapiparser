@@ -32,6 +32,7 @@ async def test_authservice_login_and_get_user(monkeypatch):
                     "User",
                     (),
                     {
+                        "id": 1,
                         "username": "admin",
                         "email": "admin@example.com",
                         "full_name": "Admin User",
@@ -69,6 +70,11 @@ async def test_authservice_login_and_get_user(monkeypatch):
     assert user.is_active is True
     assert user.email == "admin@example.com"
     assert user.full_name == "Admin User"
+    # New: assert user.id exists and token payload contains id
+    decoded = token.decode_token(jwt_token)
+    assert "id" in decoded
+    assert decoded["id"] == user.id
+    assert decoded["username"] == user.username
 
 
 @pytest.mark.asyncio
@@ -109,6 +115,7 @@ async def test_authservice_login_invalid_password(monkeypatch):
                 "User",
                 (),
                 {
+                    "id": 1,  # tambahkan id
                     "username": "admin",
                     "email": "admin@example.com",
                     "full_name": "Admin User",

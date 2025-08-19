@@ -32,7 +32,7 @@ async def create_user_by_admin(
             UserResponse: Data user yang baru dibuat.
     """
     try:
-        user = await user_crud.create_user(user_in, actor_id=current_admin.username)
+        user = await user_crud.create_user(user_in, actor_id=current_admin.id)
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
