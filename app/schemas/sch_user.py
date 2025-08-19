@@ -53,6 +53,8 @@ class UserInDB(BaseModel):
     full_name: str | None
     hashed_password: str
     is_superuser: bool
+    is_active: bool
+    is_deleted: bool
     created_at: datetime | None
     updated_at: datetime | None
     created_by: int | None
