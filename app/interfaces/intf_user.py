@@ -1,34 +1,46 @@
-"""contains user-related interfaces."""
-
 from abc import ABC, abstractmethod
 
-from app.schemas.sch_user import UserInDB
+from app.schemas.sch_user import UserCreate, UserInDB, UserPublic, UserUpdate
 
 
 class IUserRepo(ABC):
-    """Interface for user repository operations."""
+    """Interface untuk operasi repository User."""
+
+    @abstractmethod
+    async def create(
+        self, user: UserCreate, hashed_password: str, actor_id: int | None = None
+    ) -> UserInDB:
+        """Buat user baru. Return UserInDB."""
+        pass
 
     @abstractmethod
     async def get_by_id(self, user_id: int) -> UserInDB | None:
-        """Retrieve a user by their ID."""
+        """Ambil user by ID."""
         pass
 
     @abstractmethod
     async def get_by_username(self, username: str) -> UserInDB | None:
-        """Retrieve a user by their username."""
+        """Ambil user by username."""
         pass
 
     @abstractmethod
-    async def create(self, user_data: UserInDB) -> UserInDB:
-        """Create a new user with the provided data."""
+    async def list_all(self, skip: int = 0, limit: int = 100) -> list[UserPublic]:
+        """List semua user (public)."""
         pass
 
     @abstractmethod
-    async def update(self, user_id: int, user_data: UserInDB) -> UserInDB | None:
-        """Update an existing user's data."""
+    async def update(
+        self, user_id: int, data: UserUpdate, actor_id: int | None = None
+    ) -> UserInDB | None:
+        """Update data user."""
         pass
 
     @abstractmethod
     async def delete(self, user_id: int) -> None:
-        """Delete a user by their ID."""
+        """Hard delete user (hapus total)."""
+        pass
+
+    @abstractmethod
+    async def soft_delete(self, user_id: int, actor_id: int) -> None:
+        """Soft delete user (pakai AuditMixin)."""
         pass

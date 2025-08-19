@@ -1,34 +1,49 @@
-"""schemas user login."""
+"""schemas user login / crud."""
 
 from datetime import datetime
 
-from pydantic import BaseModel
-
-# class Token(BaseModel):
-#     access_token: str
-#     token_type: str
+from pydantic import BaseModel, EmailStr
 
 
-# class TokenData(BaseModel):
-#     username: str | None = None
+class UserCreate(BaseModel):
+    """Schema untuk membuat user (input)."""
+
+    username: str
+    email: EmailStr
+    full_name: str
+    password: str  # NOTE: plain password, nanti di-hash di service
 
 
-# class User(BaseModel):
-#     username: str
-#     email: str | None = None
-#     full_name: str | None = None
-#     disabled: bool | None = None
+class UserUpdate(BaseModel):
+    """Schema untuk update user (partial)."""
+
+    username: str | None = None
+    email: EmailStr | None = None
+    full_name: str | None = None
+    password: str | None = None
 
 
-# class UserInDBD(User):
-#     hashed_password: str
+class UserPublic(BaseModel):
+    """Schema untuk response ke client (tanpa password)."""
+
+    id: int
+    username: str
+    email: EmailStr
+    full_name: str
+    is_superuser: bool = False
+    created_at: datetime | None = None
+    updated_at: datetime | None = None
+
+    model_config = {"from_attributes": True, "populate_by_name": True}
 
 
 class UserInDB(BaseModel):
-    """one on One With Database Model in Database."""
+    """Schema representasi user di database.
 
-    model_config = {"from_attributes": True, "populate_by_name": True}
-    id: int | None
+    internal Use ya.
+    """
+
+    id: int
     username: str
     email: str | None
     full_name: str | None
@@ -40,3 +55,5 @@ class UserInDB(BaseModel):
     updated_by: int | None
     deleted_at: datetime | None
     deleted_by: int | None
+
+    model_config = {"from_attributes": True, "populate_by_name": True}
