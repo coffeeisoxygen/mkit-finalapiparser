@@ -11,5 +11,6 @@ class Base(DeclarativeBase):
 
 
 from app.models.db_member import Member  # noqa: F401
+from app.models.db_user import User  # noqa: F401
 
-__all__ = ["Member"]
+__all__ = ["Member", "User"]

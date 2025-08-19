@@ -7,6 +7,8 @@ from app.models import Base
 
 
 class Member(Base):
+    """schema untuk member/ reseller yang akan menggunakan API melalu Sistem Lain."""
+
     __tablename__ = "members"
 
     id = mapped_column(
@@ -16,8 +18,8 @@ class Member(Base):
     name = mapped_column(String(100), nullable=False)
     ipaddress = mapped_column(String(45), nullable=False)  # cukup utk IPv4/IPv6 teks
     report_url = mapped_column(String(2048), nullable=False)  # URL panjang
-    hash_pin = mapped_column(String(255), nullable=False)
-    hash_password = mapped_column(String(255), nullable=False)
+    pin = mapped_column(String(255), nullable=False)
+    password = mapped_column(String(255), nullable=False)
     is_active = mapped_column(Boolean(), default=True, nullable=False)
     allow_nosign = mapped_column(Boolean(), default=False, nullable=False)
     created_at = mapped_column(
