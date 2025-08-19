@@ -84,6 +84,7 @@ class DatabaseSessionManager:
 sessionmanager = DatabaseSessionManager(settings.DB_URL)
 
 
+@contextlib.asynccontextmanager
 async def get_db_session() -> AsyncIterator[AsyncSession]:
     """FastAPI dependency to yield a database session.
 

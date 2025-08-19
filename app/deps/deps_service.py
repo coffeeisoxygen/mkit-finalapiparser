@@ -1,54 +1,52 @@
-# """Dependency injection for repositories and services."""
+"""dependencies untuk service service."""
 
-# from typing import Annotated
+from app.config import get_settings
+from app.database import get_db_session
+from app.service.auth.auth_service import AuthService
+from app.service.auth.credential_service import CredentialService
+from app.service.auth.token_service import TokenService
+from app.service.user import AdminSeedService, UserCrudService
 
-# from fastapi import Depends, Request
-
-# from app.repositories import AsyncInMemoryMemberRepo, AsyncInMemoryModuleRepo
-# from app.repositories.memory.rep_user import UserRepository
-# from app.service import MemberService, ModuleService
-
-# # ───────────────────────────────
-# # Repository Factories
-# # ───────────────────────────────
+settings = get_settings()
 
 
-# def get_member_repo(request: Request) -> AsyncInMemoryMemberRepo:
-#     return request.app.state.member_repo
+async def get_user_crud_service() -> UserCrudService:
+    """Get User CRUD Service.
+
+    This function provides a User CRUD Service instance.
+
+    Returns:
+        UserCrudService: An instance of UserCrudService
+    """
+    async with get_db_session() as session:
+        return UserCrudService(session)
 
 
-# def get_module_repo(request: Request) -> AsyncInMemoryModuleRepo:
-#     return request.app.state.module_repo
+async def get_admin_seed_service() -> AdminSeedService:
+    """Get Admin Seed Service.
+
+    This function provides an Admin Seed Service instance.
+
+    Returns:
+        AdminSeedService: An instance of AdminSeedService
+    """
+    async with get_db_session() as session:
+        return AdminSeedService(session)
 
 
-# def get_user_repo(request: Request) -> UserRepository:
-#     return request.app.state.auth_repo
+async def get_auth_service() -> AuthService:
+    """Get Auth Service.
 
+    This function provides an Auth Service instance.
 
-# # ───────────────────────────────
-# # Service Factories
-# # ───────────────────────────────
-
-
-# def get_member_service(
-#     repo: AsyncInMemoryMemberRepo = Depends(get_member_repo),
-# ) -> MemberService:
-#     return MemberService(repo)
-
-
-# def get_module_service(
-#     repo: AsyncInMemoryModuleRepo = Depends(get_module_repo),
-# ) -> ModuleService:
-#     return ModuleService(repo)
-
-
-# # ───────────────────────────────
-# # Annotated Shortcuts (for router)
-# # ───────────────────────────────
-
-# DepMemberRepo = Annotated[AsyncInMemoryMemberRepo, Depends(get_member_repo)]
-# DepModuleRepo = Annotated[AsyncInMemoryModuleRepo, Depends(get_module_repo)]
-# DepUserRepo = Annotated[UserRepository, Depends(get_user_repo)]
-
-# DepMemberService = Annotated[MemberService, Depends(get_member_service)]
-# DepModuleService = Annotated[ModuleService, Depends(get_module_service)]
+    Returns:
+        AuthService: An instance of AuthService
+    """
+    async with get_db_session() as session:
+        token_service = TokenService(
+            secret_key=settings.JWT_SECRET_KEY,
+            algorithm=settings.JWT_ALGORITHM,
+            expire_minutes=settings.JWT_ACCESS_TOKEN_EXPIRE_MINUTES,
+        )
+        credential_service = CredentialService(session)
+        return AuthService(credential_service, token_service)
