@@ -148,6 +148,7 @@ class SQLiteUserRepository(IUserRepo):
         self.log.info("Soft deleting user record", user_id=user_id, actor_id=actor_id)
         try:
             user_obj.soft_delete(actor_id)
+            user_obj.is_deleted_flag = True
             if self.autocommit:
                 await self.session.commit()
             else:

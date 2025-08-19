@@ -1,6 +1,8 @@
 import pytest
+from app.models.db_user import User
 from app.schemas.sch_user import UserCreate, UserUpdate
 from app.service.user.srv_user_crud import UserCrudService
+from sqlalchemy import select
 
 
 @pytest.mark.asyncio
@@ -96,6 +98,9 @@ async def test_soft_delete_user(test_db_session):
     )
     created = await service.create_user(user, actor_id=6)
     await service.soft_delete_user(created.id, actor_id=6)
-    fetched = await service.get_user_by_id(created.id)
+    # Fetch directly from DB to check audit fields
+
+    result = await test_db_session.execute(select(User).where(User.id == created.id))
+    fetched = result.scalar_one()
     assert fetched.deleted_at is not None
     assert fetched.deleted_by == 6
