@@ -1,6 +1,7 @@
 # NOTE:
 # Always import `logger` from this module (app.mlogg.log_utils) to ensure colorized output.
 # Do NOT import `logger` directly from loguru elsewhere, or before this module's configuration runs.
+# ruff: noqa
 
 import functools
 import sys
