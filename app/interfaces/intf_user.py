@@ -3,6 +3,7 @@ from abc import ABC, abstractmethod
 from app.schemas.sch_user import UserCreate, UserInDB, UserPublic, UserUpdate
 
 
+# TODO: kalau Udah Mulai Pake Database Postgres dan lain lain , baru refactor ya
 class IUserRepo(ABC):
     """Interface untuk operasi repository User."""
 

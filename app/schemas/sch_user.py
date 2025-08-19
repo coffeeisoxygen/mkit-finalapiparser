@@ -5,12 +5,17 @@ from datetime import datetime
 from pydantic import BaseModel, EmailStr
 
 
-class UserCreate(BaseModel):
-    """Schema untuk membuat user (input)."""
+class UserBase(BaseModel):
+    model_config = {"from_attributes": True, "populate_by_name": True}
 
     username: str
     email: EmailStr
     full_name: str
+
+
+class UserCreate(UserBase):
+    """Schema untuk membuat user (input)."""
+
     password: str  # NOTE: plain password, nanti di-hash di service
 
 
@@ -22,14 +27,13 @@ class UserUpdate(BaseModel):
     full_name: str | None = None
     password: str | None = None
 
+    model_config = {"from_attributes": True, "populate_by_name": True}
 
-class UserPublic(BaseModel):
+
+class UserPublic(UserBase):
     """Schema untuk response ke client (tanpa password)."""
 
     id: int
-    username: str
-    email: EmailStr
-    full_name: str
     is_superuser: bool = False
     created_at: datetime | None = None
     updated_at: datetime | None = None
@@ -59,7 +63,7 @@ class UserInDB(BaseModel):
     model_config = {"from_attributes": True, "populate_by_name": True}
 
 
-class AdminSeeder(BaseModel):
+class AdminSeeder(UserBase):
     """Schema untuk seeding admin user."""
 
     username: str
@@ -69,3 +73,22 @@ class AdminSeeder(BaseModel):
     is_superuser: bool = True
     is_active: bool = True
     is_deleted: bool = False
+
+
+# Token Service Goes Here
+class Token(BaseModel):
+    access_token: str
+    token_type: str
+
+
+class TokenData(BaseModel):
+    username: str | None = None
+
+
+class UserLogin(BaseModel):
+    """Schema untuk user login request."""
+
+    username: str
+    hashed_password: str
+
+    model_config = {"from_attributes": True, "populate_by_name": True}
