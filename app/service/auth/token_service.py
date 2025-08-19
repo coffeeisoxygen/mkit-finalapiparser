@@ -1,6 +1,7 @@
 from datetime import UTC, datetime, timedelta
 
 import jwt
+
 from app.custom.exceptions.cst_exceptions import (
     AuthError,
     TokenExpiredError,
