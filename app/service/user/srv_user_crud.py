@@ -16,7 +16,7 @@ class UserCrudService:
     def __init__(self, session: AsyncSession, hasher: HasherService | None = None):
         self.session = session
         self.hasher = hasher or HasherService()
-        self.log = logger.bind(service=self.__class__.__name__)
+        self.log = logger.bind(service="UserCrudService")
 
     @logger_wraps(entry=True, exit=True, level="INFO")
     async def create_user(

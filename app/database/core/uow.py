@@ -16,7 +16,7 @@ class UnitOfWork:
     def __init__(self, session: AsyncSession):
         self.session = session
         self._committed = False
-        self.log = logger.bind(uow=self.__class__.__name__)
+        self.log = logger.bind(uow="UnitOfWork")
         self.log.info("UnitOfWork initialized")
 
     @logger_wraps(entry=True, exit=True, level="INFO")

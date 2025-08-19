@@ -1,42 +1,42 @@
-from datetime import UTC, datetime, timedelta
+# from datetime import UTC, datetime, timedelta
 
-import jwt
+# import jwt
 
-from app.custom.exceptions.cst_exceptions import (
-    AuthError,
-    TokenExpiredError,
-    TokenInvalidError,
-)
-from app.mlogg import logger
+# from app.custom.exceptions.cst_exceptions import (
+#     AuthError,
+#     TokenExpiredError,
+#     TokenInvalidError,
+# )
+# from app.mlogg import logger
 
 
-class TokenService:
-    """Create & validate JWT."""
+# class TokenService:
+#     """Create & validate JWT."""
 
-    def __init__(self, secret_key: str, algorithm: str, expire_minutes: int):
-        self.secret_key = secret_key
-        self.algorithm = algorithm
-        self.expire_minutes = expire_minutes
-        logger.bind(service="TokenService").debug("TokenService initialized")
+#     def __init__(self, secret_key: str, algorithm: str, expire_minutes: int):
+#         self.secret_key = secret_key
+#         self.algorithm = algorithm
+#         self.expire_minutes = expire_minutes
+#         logger.bind(service="TokenService").debug("TokenService initialized")
 
-    def create_token(self, username: str) -> str:
-        expire = datetime.now(UTC) + timedelta(minutes=self.expire_minutes)
-        payload = {"sub": username, "exp": expire}
-        token = jwt.encode(payload, self.secret_key, algorithm=self.algorithm)
-        logger.bind(service="TokenService").debug("Token created", username=username)
-        return token
+#     def create_token(self, username: str) -> str:
+#         expire = datetime.now(UTC) + timedelta(minutes=self.expire_minutes)
+#         payload = {"sub": username, "exp": expire}
+#         token = jwt.encode(payload, self.secret_key, algorithm=self.algorithm)
+#         logger.bind(service="TokenService").debug("Token created", username=username)
+#         return token
 
-    def decode_token(self, token: str) -> dict:
-        try:
-            return jwt.decode(token, self.secret_key, algorithms=[self.algorithm])
-        except jwt.ExpiredSignatureError as e:
-            logger.bind(service="TokenService").warning("Token expired", token=token)
-            raise TokenExpiredError(cause=e) from e
-        except jwt.InvalidTokenError as e:
-            logger.bind(service="TokenService").warning("Invalid token", token=token)
-            raise TokenInvalidError(cause=e) from e
-        except Exception as e:
-            logger.bind(service="TokenService").error(
-                "Authentication error occurred", token=token
-            )
-            raise AuthError("Authentication error occurred.", cause=e) from e
+#     def decode_token(self, token: str) -> dict:
+#         try:
+#             return jwt.decode(token, self.secret_key, algorithms=[self.algorithm])
+#         except jwt.ExpiredSignatureError as e:
+#             logger.bind(service="TokenService").warning("Token expired", token=token)
+#             raise TokenExpiredError(cause=e) from e
+#         except jwt.InvalidTokenError as e:
+#             logger.bind(service="TokenService").warning("Invalid token", token=token)
+#             raise TokenInvalidError(cause=e) from e
+#         except Exception as e:
+#             logger.bind(service="TokenService").error(
+#                 "Authentication error occurred", token=token
+#             )
+#             raise AuthError("Authentication error occurred.", cause=e) from e

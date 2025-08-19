@@ -12,23 +12,15 @@ class SQLiteUserRepository(IUserRepo):
     """SQLite implementation of IUserRepo."""
 
     def __init__(self, session: AsyncSession, autocommit: bool = True):
-        """Initialize repository.
-
-        Args:
-            session: AsyncSession instance.
-            autocommit: If True, repo will commit after each write op.
-                        If False, caller/UoW must manage commit/rollback.
-        """
         self.session = session
         self.autocommit = autocommit
-        self.log = logger.bind(repo=self.__class__.__name__)
+        self.log = logger.bind(repo="SQLiteUserRepository")
         self.log.info("Initialized with autocommit=%s", autocommit)
 
         # NOTE: Service / caller wajib commit / rollback
         # kalau autocommit=False, maka repo hanya flush, tidak commit
 
     async def _check_duplicate_user(self, username: str, email: str) -> None:
-        """Helper to check for duplicate username or email."""
         stmt = select(User).where((User.username == username) | (User.email == email))
         result = await self.session.execute(stmt)
         existing = result.scalar_one_or_none()
@@ -39,9 +31,7 @@ class SQLiteUserRepository(IUserRepo):
     async def create(
         self, user: UserCreate, hashed_password: str, actor_id: int | None = None
     ) -> UserInDB:
-        """Create user. Caller responsible for commit/rollback if autocommit=False."""
         await self._check_duplicate_user(user.username, user.email)
-
         new_user = User(
             username=user.username,
             email=user.email,
@@ -51,13 +41,11 @@ class SQLiteUserRepository(IUserRepo):
             created_by=actor_id,
         )
         self.session.add(new_user)
-
         if self.autocommit:
             await self.session.commit()
             await self.session.refresh(new_user)
         else:
             await self.session.flush()
-
         self.log.info("User created", username=user.username, actor_id=actor_id)
         return UserInDB.model_validate(new_user)
 
@@ -99,14 +87,11 @@ class SQLiteUserRepository(IUserRepo):
             raise DataNotFoundError(
                 context={"user_id": user_id, "data": data.model_dump()}
             )
-
         update_data = data.model_dump(exclude_unset=True)
         if "password" in update_data:
             update_data.pop("password")  # NOTE: hashing handled in service
-
         for key, value in update_data.items():
             setattr(user_obj, key, value)
-
         user_obj.updated_by = actor_id
         self.log.info(
             "Updating user record",
@@ -120,6 +105,7 @@ class SQLiteUserRepository(IUserRepo):
                 await self.session.refresh(user_obj)
             else:
                 await self.session.flush()
+                await self.session.refresh(user_obj)
         except Exception as e:
             self.log.exception(
                 "Exception during user update", user_id=user_id, error=str(e)
@@ -132,7 +118,6 @@ class SQLiteUserRepository(IUserRepo):
         if not user_obj:
             self.log.error("Data not found for delete", user_id=user_id)
             raise DataNotFoundError(context={"user_id": user_id})
-
         self.log.info("Deleting user record", user_id=user_id)
         try:
             await self.session.delete(user_obj)
@@ -153,7 +138,6 @@ class SQLiteUserRepository(IUserRepo):
                 "Data not found for soft delete", method="soft_delete", user_id=user_id
             )
             raise DataNotFoundError(context={"user_id": user_id, "actor_id": actor_id})
-
         self.log.info("Soft deleting user record", user_id=user_id, actor_id=actor_id)
         try:
             user_obj.soft_delete(actor_id)
