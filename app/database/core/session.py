@@ -1,4 +1,3 @@
-# app/db/session.py
 import contextlib
 from collections.abc import AsyncIterator
 
@@ -38,7 +37,7 @@ class DatabaseSessionManager:
 
     @contextlib.asynccontextmanager
     async def connect(self) -> AsyncIterator[AsyncConnection]:
-        """Provide an async connection."""
+        """Provide an async connection (non-ORM)."""
         if self.engine is None:
             raise ServiceError("Database engine is not initialized")
 
@@ -47,12 +46,17 @@ class DatabaseSessionManager:
                 yield connection
             except SQLAlchemyError as e:
                 await connection.rollback()
-                logger.error(f"Connection error occurred: {e}")
-                raise ServiceError from e
+                logger.bind(method="connect", db_url=str(self.engine.url)).exception(
+                    "Connection error occurred"
+                )
+                raise ServiceError(message=str(e), cause=e) from e
 
     @contextlib.asynccontextmanager
     async def session(self) -> AsyncIterator[AsyncSession]:
-        """Provide an async session with rollback & close handling."""
+        """Provide an async session with rollback & close handling.
+
+        Caller is responsible for commit.
+        """
         if not self._sessionmaker:
             logger.error("Sessionmaker is not available")
             raise ServiceError("Sessionmaker is not available")
@@ -60,15 +64,20 @@ class DatabaseSessionManager:
         async with self._sessionmaker() as session:
             try:
                 yield session
-                await session.commit()
             except SQLAlchemyError as e:
                 await session.rollback()
-                logger.error(f"Session error: {e}")
-                raise ServiceError from e
+                db_url = str(self.engine.url) if self.engine else "N/A"
+                logger.bind(method="session", db_url=db_url).exception("Session error")
+                raise ServiceError(message=str(e), cause=e) from e
             except Exception as e:
                 await session.rollback()
-                logger.error(f"Unexpected session error: {e}")
-                raise ServiceError from e
+                db_url = str(self.engine.url) if self.engine else "N/A"
+                logger.bind(method="session", db_url=db_url).exception(
+                    "Unexpected session error"
+                )
+                raise ServiceError(message=str(e), cause=e) from e
+            finally:
+                await session.close()
 
 
 # Singleton instance for FastAPI
@@ -76,6 +85,9 @@ sessionmanager = DatabaseSessionManager(settings.DB_URL)
 
 
 async def get_db_session() -> AsyncIterator[AsyncSession]:
-    """FastAPI dependency to yield a database session."""
+    """FastAPI dependency to yield a database session.
+
+    Caller must commit explicitly if needed.
+    """
     async with sessionmanager.session() as session:
         yield session
