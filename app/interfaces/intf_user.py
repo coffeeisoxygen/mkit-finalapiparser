@@ -1,6 +1,6 @@
 from abc import ABC, abstractmethod
 
-from app.schemas.sch_user import UserCreate, UserInDB, UserPublic, UserUpdate
+from app.schemas.sch_user import UserCreate, UserInDB, UserResponse, UserUpdate
 
 
 # TODO: kalau Udah Mulai Pake Database Postgres dan lain lain , baru refactor ya
@@ -25,7 +25,7 @@ class IUserRepo(ABC):
         pass
 
     @abstractmethod
-    async def list_all(self, skip: int = 0, limit: int = 100) -> list[UserPublic]:
+    async def list_all(self, skip: int = 0, limit: int = 100) -> list[UserResponse]:
         """List semua user (public)."""
         pass
 

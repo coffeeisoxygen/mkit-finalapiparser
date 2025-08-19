@@ -2,39 +2,70 @@
 
 from datetime import datetime
 
-from pydantic import BaseModel, EmailStr
+from pydantic import BaseModel, EmailStr, Field
+
+from app.schemas.cmn_validator import (
+    AlphanumericUnderscoreStr,
+    AlphanumericWithSpaceStr,
+    PasswordStrongStr,
+)
+
+# TODO : Implementasi dan rapihakn model , dsini nati harus ada validasi dan json_schema
 
 
 class UserBase(BaseModel):
     model_config = {"from_attributes": True, "populate_by_name": True}
 
-    username: str
+    username: AlphanumericUnderscoreStr = Field(
+        description="username untuk login , hanya alphanumeric dan underscore"
+    )
     email: EmailStr
-    full_name: str
+    full_name: AlphanumericWithSpaceStr = Field(
+        description="full name untuk login , hanya alphanumeric dan spasi"
+    )
 
 
 class UserCreate(UserBase):
     """Schema untuk membuat user (input)."""
 
-    password: str  # NOTE: plain password, nanti di-hash di service
+    password: PasswordStrongStr = Field(
+        description="Password untuk user baru, harus kuat dan tidak boleh mengandung spasi."
+    )
+    # NOTE: plain password, nanti di-hash di service
+
+
+class AdminSeeder(
+    UserBase,
+):
+    """Schema untuk seeding admin user."""
+
+    password: str = Field(
+        ..., min_length=6
+    )  # NOTE: plain password, nanti di-hash di service
+    is_superuser: bool = True
+    is_active: bool = True
+    is_deleted: bool = False
 
 
 class UserUpdate(BaseModel):
-    """Schema untuk update user (partial)."""
+    """Schema untuk update user (input partial)."""
 
-    username: str | None = None
+    username: AlphanumericUnderscoreStr | None = None
     email: EmailStr | None = None
-    full_name: str | None = None
-    password: str | None = None
+    full_name: AlphanumericWithSpaceStr | None = None
+    password: PasswordStrongStr | None = None
 
     model_config = {"from_attributes": True, "populate_by_name": True}
 
 
-class UserPublic(UserBase):
+class UserResponse(BaseModel):
     """Schema untuk response ke client (tanpa password)."""
 
     id: int
-    is_superuser: bool = False
+    username: AlphanumericUnderscoreStr
+    email: EmailStr
+    full_name: AlphanumericWithSpaceStr
+    is_superuser: bool
     created_at: datetime | None = None
     updated_at: datetime | None = None
 
@@ -45,12 +76,11 @@ class UserInDB(BaseModel):
     """Schema representasi user di database.
 
     internal Use ya.
+    dont gunakan ini untuk user public/ response Keluar
+    untuk kebutuhan repository sih ini agar ngga pusing.
     """
 
-    id: int
-    username: str
-    email: str | None
-    full_name: str | None
+    id: int | None  # ini adalah id database ya
     hashed_password: str
     is_superuser: bool
     is_active: bool
@@ -65,16 +95,16 @@ class UserInDB(BaseModel):
     model_config = {"from_attributes": True, "populate_by_name": True}
 
 
-class AdminSeeder(UserBase):
-    """Schema untuk seeding admin user."""
-
-    password: str
-    is_superuser: bool = True
-    is_active: bool = True
-    is_deleted: bool = False
-
-
 # Token Service Goes Here
+
+
+class UserToken(UserBase):
+    """Schema untuk user token."""
+
+    is_active: bool
+    is_superuser: bool
+
+
 class Token(BaseModel):
     access_token: str
     token_type: str
@@ -82,12 +112,3 @@ class Token(BaseModel):
 
 class TokenData(BaseModel):
     username: str | None = None
-
-
-class UserLogin(BaseModel):
-    """Schema untuk user login request."""
-
-    username: str
-    hashed_password: str
-
-    model_config = {"from_attributes": True, "populate_by_name": True}

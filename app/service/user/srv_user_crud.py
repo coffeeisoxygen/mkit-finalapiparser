@@ -6,7 +6,7 @@ from app.database.core.uow import UnitOfWork
 from app.database.repositories.repo_user import SQLiteUserRepository
 from app.mlogg import logger
 from app.mlogg.utils import logger_wraps
-from app.schemas.sch_user import UserCreate, UserInDB, UserPublic, UserUpdate
+from app.schemas.sch_user import UserCreate, UserInDB, UserResponse, UserUpdate
 from app.service.security.srv_hasher import HasherService
 
 
@@ -50,7 +50,7 @@ class UserCrudService:
         return await repo.get_by_username(username)
 
     @logger_wraps(entry=True, exit=True, level="INFO")
-    async def list_users(self, skip: int = 0, limit: int = 100) -> list[UserPublic]:
+    async def list_users(self, skip: int = 0, limit: int = 100) -> list[UserResponse]:
         repo = SQLiteUserRepository(self.session, autocommit=True)
         return await repo.list_all(skip=skip, limit=limit)
 

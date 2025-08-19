@@ -6,7 +6,7 @@ from app.database.core import valid_record_filter
 from app.interfaces.intf_user import IUserRepo
 from app.mlogg import logger
 from app.models.db_user import User
-from app.schemas.sch_user import UserCreate, UserInDB, UserPublic, UserUpdate
+from app.schemas.sch_user import UserCreate, UserInDB, UserResponse, UserUpdate
 
 
 class SQLiteUserRepository(IUserRepo):
@@ -74,11 +74,11 @@ class SQLiteUserRepository(IUserRepo):
             raise DataNotFoundError(context={"username": username})
         return UserInDB.model_validate(user_obj)
 
-    async def list_all(self, skip: int = 0, limit: int = 100) -> list[UserPublic]:
+    async def list_all(self, skip: int = 0, limit: int = 100) -> list[UserResponse]:
         stmt = select(User).where(valid_record_filter(User)).offset(skip).limit(limit)
         result = await self.session.execute(stmt)
         users = result.scalars().all()
-        return [UserPublic.model_validate(u) for u in users]
+        return [UserResponse.model_validate(u) for u in users]
 
     async def update(
         self, user_id: int, data: UserUpdate, actor_id: int | None = None
