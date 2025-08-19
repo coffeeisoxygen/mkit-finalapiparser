@@ -20,13 +20,19 @@ class UserCrudService:
 
     @logger_wraps(entry=True, exit=True, level="INFO")
     async def create_user(
-        self, user: UserCreate, actor_id: int | None = None
+        self,
+        user: UserCreate,
+        actor_id: int | None = None,
     ) -> UserInDB:
         """Create user with password hashing."""
         hashed_password = self.hasher.hash_value(user.password)
         async with UnitOfWork(self.session) as uow:
             repo = SQLiteUserRepository(uow.session, autocommit=False)
-            new_user = await repo.create(user, hashed_password, actor_id)
+            new_user = await repo.create(
+                user,
+                hashed_password,
+                actor_id,
+            )
             await uow.commit()
             self.log.info(
                 "User created via service", username=user.username, actor_id=actor_id

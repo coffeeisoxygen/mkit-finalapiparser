@@ -59,7 +59,10 @@ class AdminSeedService:
             full_name=admin.full_name,
             password=admin.password,
         )
-        await self.user_service.create_user(user_create, actor_id=None)
+        await self.user_service.create_user(
+            user_create,
+            actor_id=None,
+        )
         self.log.info("Default admin seeded.", username=admin.username)
         return True
 

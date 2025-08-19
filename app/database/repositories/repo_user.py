@@ -29,7 +29,11 @@ class SQLiteUserRepository(IUserRepo):
             raise DataDuplicationError(context={"username": username, "email": email})
 
     async def create(
-        self, user: UserCreate, hashed_password: str, actor_id: int | None = None
+        self,
+        user: UserCreate,
+        hashed_password: str,
+        actor_id: int | None = None,
+        is_superuser: bool = False,
     ) -> UserInDB:
         await self._check_duplicate_user(user.username, user.email)
         new_user = User(
@@ -37,7 +41,7 @@ class SQLiteUserRepository(IUserRepo):
             email=user.email,
             full_name=user.full_name,
             hashed_password=hashed_password,
-            is_superuser=False,
+            is_superuser=is_superuser,
             created_by=actor_id,
         )
         self.session.add(new_user)
