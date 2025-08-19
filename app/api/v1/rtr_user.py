@@ -34,8 +34,11 @@ async def login_for_access_token(
     """Login user dan dapatkan JWT access token.
 
     Args:
-        form_data (OAuth2PasswordRequestForm): username & password dari form.
-        auth_service (AuthService): DI AuthService facade.
+        form_data (Annotated[OAuth2PasswordRequestForm, Depends]): Form data yang berisi username dan password.
+        auth_service (Annotated[AuthService, Depends]): Service untuk melakukan autentikasi.
+
+    Raises:
+        HTTPException: Jika username atau password salah.
 
     Returns:
         Token: JWT access token.
@@ -50,9 +53,6 @@ async def login_for_access_token(
     return Token(access_token=token, token_type="bearer")
 
 
-# ---------------------------
-# GET /api/v1/user/me
-# ---------------------------
 @router.get("/me/", response_model=UserToken)
 async def read_users_me(
     current_user: DepCurrentUser,
