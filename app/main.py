@@ -20,12 +20,8 @@ register_routers(app)
 @app.exception_handler(AppExceptionError)
 async def app_exception_handler(request: Request, exc: AppExceptionError):  # noqa: ARG001, D103, RUF029
     return JSONResponse(
-        status_code=exc.status_code,
-        content={
-            "error": exc.name,
-            "message": exc.message,
-            "context": exc.context,
-        },
+        status_code=exc.status_code or 500,
+        content=exc.to_dict(),
     )
 
 

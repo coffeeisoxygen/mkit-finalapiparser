@@ -22,8 +22,8 @@ class DatabaseSessionManager:
 
     def __init__(self, db_url: str):
         self.engine: AsyncEngine | None = create_async_engine(db_url, echo=False)
-        self._sessionmaker: async_sessionmaker[AsyncSession] = async_sessionmaker(
-            self.engine, expire_on_commit=False
+        self._sessionmaker: async_sessionmaker[AsyncSession] | None = (
+            async_sessionmaker(self.engine, expire_on_commit=False)
         )
         logger.debug("DatabaseSessionManager initialized")
 
@@ -32,7 +32,7 @@ class DatabaseSessionManager:
         if self.engine:
             await self.engine.dispose()
             self.engine = None
-            self._sessionmaker = None  # type: ignore
+            self._sessionmaker = None
             logger.debug("Database engine disposed")
 
     @contextlib.asynccontextmanager
