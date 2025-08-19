@@ -96,22 +96,3 @@ class UserInDB(BaseModel):
     deleted_by: int | None
 
     model_config = {"from_attributes": True, "populate_by_name": True}
-
-
-# Token Service Goes Here
-
-
-class UserToken(UserBase):
-    """Schema untuk user token."""
-
-    is_active: bool
-    is_superuser: bool
-
-
-class Token(BaseModel):
-    access_token: str
-    token_type: str
-
-
-class TokenData(BaseModel):
-    username: str | None = None

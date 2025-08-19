@@ -7,6 +7,7 @@ from app.custom.exceptions.cst_exceptions import (
     TokenInvalidError,
 )
 from app.mlogg import logger
+from app.schemas.sch_token import UserToken
 
 
 class TokenService:
@@ -18,11 +19,28 @@ class TokenService:
         self.expire_minutes = expire_minutes
         logger.bind(service="TokenService").debug("TokenService initialized")
 
-    def create_token(self, username: str) -> str:
+    def create_token(self, user: UserToken) -> str:
+        """Create JWT token with full user info in payload.
+
+        Args:
+            user (UserToken): UserToken schema with user info.
+
+        Returns:
+            str: JWT token string.
+        """
         expire = datetime.now(UTC) + timedelta(minutes=self.expire_minutes)
-        payload = {"sub": username, "exp": expire}
+        payload = {
+            "sub": user.username,
+            "is_superuser": user.is_superuser,
+            "is_active": user.is_active,
+            "email": user.email,
+            "full_name": user.full_name,
+            "exp": expire,
+        }
         token = jwt.encode(payload, self.secret_key, algorithm=self.algorithm)
-        logger.bind(service="TokenService").debug("Token created", username=username)
+        logger.bind(service="TokenService").debug(
+            "Token created", username=user.username
+        )
         return token
 
     def decode_token(self, token: str) -> dict:
