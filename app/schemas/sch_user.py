@@ -80,7 +80,10 @@ class UserInDB(BaseModel):
     untuk kebutuhan repository sih ini agar ngga pusing.
     """
 
-    id: int | None  # ini adalah id database ya
+    id: int  # ini adalah id database ya
+    username: str
+    email: str
+    full_name: str
     hashed_password: str
     is_superuser: bool
     is_active: bool

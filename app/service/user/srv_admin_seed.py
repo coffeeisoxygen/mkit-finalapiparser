@@ -53,7 +53,7 @@ class AdminSeedService:
             username="admin",
             email="admin@example.com",
             full_name="Default Admin",
-            password="admin123",
+            password="admin@123",
         )
         user_create = UserCreate(
             username=admin.username,
