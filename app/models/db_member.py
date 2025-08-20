@@ -4,10 +4,10 @@ from sqlalchemy import Boolean, String
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.models import Base
-from app.models.audit_mixin import AuditMixin
+from app.models.db_mixin import SoftDeleteMixin, TimestampMixin
 
 
-class Member(Base, AuditMixin):
+class Member(Base, TimestampMixin, SoftDeleteMixin):
     """schema untuk member/ reseller yang akan menggunakan API melalu Sistem Lain."""
 
     __tablename__ = "members"
@@ -16,12 +16,8 @@ class Member(Base, AuditMixin):
         String(32), index=True, nullable=False, unique=True, primary_key=True
     )
     name: Mapped[str] = mapped_column(String(100), nullable=False)
-    ipaddress: Mapped[str] = mapped_column(
-        String(45), nullable=False, index=True
-    )  # cukup utk IPv4/IPv6 teks
-    report_url: Mapped[str] = mapped_column(
-        String(2048), nullable=False, index=True
-    )  # URL panjang
+    ipaddress: Mapped[str] = mapped_column(String(45), nullable=False, index=True)
+    report_url: Mapped[str] = mapped_column(String(2048), nullable=False, index=True)
     pin: Mapped[str] = mapped_column(String(255), nullable=False)
     password: Mapped[str] = mapped_column(String(255), nullable=False)
     allow_nosign: Mapped[bool] = mapped_column(
