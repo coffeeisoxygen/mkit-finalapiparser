@@ -7,6 +7,7 @@ from app.config import get_settings
 APP_NAME = get_settings().APP_NAME
 
 
+# ----------------- Base Exception -----------------
 class AppExceptionError(Exception):
     """Base exception with adapter support and proper chaining."""
 
@@ -49,6 +50,7 @@ class AppExceptionError(Exception):
         return f"<{self.__class__.__name__} status={self.status_code} message={self.message!r}>"
 
 
+# ----------------- Data Integrity Exceptions -----------------
 class DataIntegrityError(AppExceptionError):
     """Exception raised for data integrity errors."""
 
@@ -63,13 +65,6 @@ class DataNotFoundError(DataIntegrityError):
     status_code = 404
 
 
-class AuditMixinError(AppExceptionError):
-    """Exception raised for audit mixin errors."""
-
-    default_message = "Audit mixin error occurred."
-    status_code = 500
-
-
 class DataDuplicationError(DataIntegrityError):
     """Exception raised for data duplication errors."""
 
@@ -77,6 +72,14 @@ class DataDuplicationError(DataIntegrityError):
     status_code = 409
 
 
+class DataGenericError(DataIntegrityError):
+    """Exception raised for generic data errors."""
+
+    default_message = "Generic data error occurred."
+    status_code = 400
+
+
+# ----------------- Entity Exceptions -----------------
 class EntityNotFoundError(AppExceptionError):
     """Exception raised when an entity is not found."""
 
@@ -91,6 +94,22 @@ class EntityAlreadyExistsError(AppExceptionError):
     status_code = 409
 
 
+# ----------------- Audit Exceptions -----------------
+class AuditMixinError(AppExceptionError):
+    """Exception raised for audit mixin errors."""
+
+    default_message = "Audit mixin error occurred."
+    status_code = 500
+
+
+class AdminCantDeleteError(AppExceptionError):
+    """Exception raised when an admin user cannot be deleted."""
+
+    default_message = "Admin user cannot be deleted."
+    status_code = 403
+
+
+# ----------------- Auth Exceptions -----------------
 class AuthError(AppExceptionError):
     """Exception raised for authentication errors."""
 
@@ -126,6 +145,7 @@ class UserPasswordError(AuthError):
     status_code = 401
 
 
+# ----------------- Service Exceptions -----------------
 class ServiceError(AppExceptionError):
     """Exception raised for service errors."""
 

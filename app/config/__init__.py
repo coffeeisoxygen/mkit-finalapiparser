@@ -2,6 +2,7 @@
 
 from enum import StrEnum
 from typing import TYPE_CHECKING
+import uuid
 
 from app._version import version
 
@@ -36,6 +37,7 @@ class Settings(BaseSettings):
     APP_DEBUG: bool = False
     APP_NAME: str = "MKIT_WRAPPER"
     APP_VERSION: str = version
+    ADM_ID: uuid.UUID = uuid.UUID("00000000-0000-0000-0000-000000000000")
     JWT_SECRET_KEY: str
     JWT_ALGORITHM: str
     JWT_ACCESS_TOKEN_EXPIRE_MINUTES: int

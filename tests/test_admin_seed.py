@@ -1,5 +1,7 @@
 """Test for AdminSeedService (admin seeding and sysadmin protection)."""
 
+import uuid
+
 import pytest
 from app.models.db_user import User
 from app.service.security.srv_hasher import HasherService
@@ -14,7 +16,8 @@ async def test_seed_default_admin_creates_admin(test_db_session: AsyncSession):
     # Ensure no superuser exists
     await test_db_session.execute(delete(User))
     await test_db_session.commit()
-    seeded = await service.seed_default_admin()
+    system_actor_id = uuid.UUID("00000000-0000-0000-0000-000000000000")
+    seeded = await service.seed_default_admin(actor_id=system_actor_id)
     assert seeded is True
     result = await test_db_session.execute(
         select(User).where(User.is_superuser.is_(True))
@@ -29,8 +32,9 @@ async def test_seed_default_admin_skips_if_exists(test_db_session: AsyncSession)
     service = AdminSeedService(test_db_session, hasher=HasherService())
     await test_db_session.execute(delete(User))
     await test_db_session.commit()
-    await service.seed_default_admin()
-    seeded = await service.seed_default_admin()
+    system_actor_id = uuid.UUID("00000000-0000-0000-0000-000000000000")
+    await service.seed_default_admin(actor_id=system_actor_id)
+    seeded = await service.seed_default_admin(actor_id=system_actor_id)
     assert seeded is False
 
 
@@ -39,7 +43,8 @@ async def test_can_delete_user_false_for_superuser(test_db_session: AsyncSession
     service = AdminSeedService(test_db_session, hasher=HasherService())
     await test_db_session.execute(delete(User))
     await test_db_session.commit()
-    await service.seed_default_admin()
+    system_actor_id = uuid.UUID("00000000-0000-0000-0000-000000000000")
+    await service.seed_default_admin(actor_id=system_actor_id)
     result = await test_db_session.execute(
         select(User.id).where(User.is_superuser.is_(True))
     )
