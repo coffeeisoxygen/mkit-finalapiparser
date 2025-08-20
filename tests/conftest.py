@@ -1,13 +1,17 @@
 import asyncio
 import os
+from collections.abc import Generator
 from pathlib import Path
 
 import pytest
 from app.config import get_settings
+from app.crud.repositories.lite_repo_auditlog import LiteAuditLogRepo
+from app.crud.repositories.lite_repo_user import LiteUserRepo
 from app.database import DatabaseSessionManager, create_tables, sessionmanager
 from app.models import Base
 from dotenv import load_dotenv
 from loguru import logger
+from sqlalchemy.ext.asyncio import AsyncSession
 
 PATHTOTESTENV = Path(__file__).parent.parent / ".env.test"
 
@@ -61,7 +65,23 @@ async def test_print_db_session(test_db_session):
     assert test_db_session is not None
 
 
-# @pytest.fixture
-# async def seeded_admin(test_db_session):
-#     service = AdminSeedService(test_db_session)
-#     await service.seed_default_admin()
+# ==================== EVENT LOOP ====================
+@pytest.fixture(scope="session")
+def event_loop() -> Generator[asyncio.AbstractEventLoop, None, None]:
+    """Create event loop for the test session."""
+    loop = asyncio.new_event_loop()
+    yield loop
+    loop.close()
+
+
+# ==================== REPOSITORY FIXTURES ====================
+@pytest.fixture
+def user_repository(async_session: AsyncSession) -> LiteUserRepo:
+    """LiteUserRepo instance untuk testing."""
+    return LiteUserRepo(async_session)
+
+
+@pytest.fixture
+def auditlog_repository(async_session: AsyncSession) -> LiteAuditLogRepo:
+    """LiteAuditLogRepo instance untuk testing."""
+    return LiteAuditLogRepo(async_session)
