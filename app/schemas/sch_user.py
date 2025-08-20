@@ -3,6 +3,7 @@
 from datetime import datetime
 
 from pydantic import BaseModel, EmailStr, Field
+from pydantic_extra_types.ulid import ULID
 
 from app.schemas.cmn_validator import (
     AlphanumericUnderscoreStr,
@@ -61,7 +62,6 @@ class UserUpdate(BaseModel):
 class UserResponse(BaseModel):
     """Schema untuk response ke client (tanpa password)."""
 
-    id: int
     username: AlphanumericUnderscoreStr
     email: EmailStr
     full_name: AlphanumericWithSpaceStr
@@ -80,7 +80,7 @@ class UserInDB(BaseModel):
     untuk kebutuhan repository sih ini agar ngga pusing.
     """
 
-    id: int  # ini adalah id database ya
+    id: ULID  # ULID type for database id
     username: str
     email: str
     full_name: str
@@ -90,9 +90,9 @@ class UserInDB(BaseModel):
     is_deleted: bool
     created_at: datetime | None
     updated_at: datetime | None
-    created_by: int | None
-    updated_by: int | None
+    created_by: ULID | None
+    updated_by: ULID | None
     deleted_at: datetime | None
-    deleted_by: int | None
+    deleted_by: ULID | None
 
     model_config = {"from_attributes": True, "populate_by_name": True}

@@ -1,3 +1,4 @@
+from pydantic_extra_types.ulid import ULID
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -33,7 +34,7 @@ class SQLiteUserRepository(IUserRepo):
         self,
         user: UserCreate,
         hashed_password: str,
-        actor_id: int | None = None,
+        actor_id: ULID | str | None = None,
         is_superuser: bool = False,
     ) -> UserInDB:
         await self._check_duplicate_user(user.username, user.email)
@@ -54,7 +55,7 @@ class SQLiteUserRepository(IUserRepo):
         self.log.info("User created", username=user.username, actor_id=actor_id)
         return UserInDB.model_validate(new_user)
 
-    async def get_by_id(self, user_id: int) -> UserInDB:
+    async def get_by_id(self, user_id: ULID | str) -> UserInDB:
         stmt = select(User).where(User.id == user_id, valid_record_filter(User))
         result = await self.session.execute(stmt)
         user_obj = result.scalar_one_or_none()
@@ -81,7 +82,7 @@ class SQLiteUserRepository(IUserRepo):
         return [UserResponse.model_validate(u) for u in users]
 
     async def update(
-        self, user_id: int, data: UserUpdate, actor_id: int | None = None
+        self, user_id: ULID | str, data: UserUpdate, actor_id: ULID | str | None = None
     ) -> UserInDB:
         user_obj = await self.session.get(User, user_id)
         if not user_obj:
@@ -120,7 +121,7 @@ class SQLiteUserRepository(IUserRepo):
             raise
         return UserInDB.model_validate(user_obj)
 
-    async def delete(self, user_id: int) -> None:
+    async def delete(self, user_id: ULID | str) -> None:
         user_obj = await self.session.get(User, user_id)
         if not user_obj:
             self.log.error("Data not found for delete", user_id=user_id)
@@ -138,7 +139,7 @@ class SQLiteUserRepository(IUserRepo):
             )
             raise
 
-    async def soft_delete(self, user_id: int, actor_id: int) -> None:
+    async def soft_delete(self, user_id: ULID | str, actor_id: ULID | str) -> None:
         user_obj = await self.session.get(User, user_id)
         if not user_obj:
             self.log.error(
