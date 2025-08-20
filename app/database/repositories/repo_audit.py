@@ -8,8 +8,8 @@ from datetime import datetime
 from typing import Any
 
 from app.custom.exceptions.cst_exceptions import AuditMixinError
+from app.database.interfaces.intf_audit import IAuditMixinRepo
 from app.database.repositories.helpers import pk_for_query, to_uuid_str
-from app.interfaces.intf_audit import IAuditMixinRepo
 
 
 class AuditMixinRepository(IAuditMixinRepo[Any]):
