@@ -1,6 +1,6 @@
 import pytest
 from app.models.ulid_type import ULIDType
-from sqlalchemy import create_engine, select
+from sqlalchemy import create_engine, select, text
 from sqlalchemy.orm import Mapped, Session, declarative_base, mapped_column
 from ulid import ULID
 
@@ -42,6 +42,12 @@ def test_ulid_type_roundtrip(session):
     assert isinstance(result.id, ULID)
     assert str(result.id) == str(ulid_obj)
     assert result.name == "test"
+    # Check raw DB value is string
+    raw = session.execute(
+        text("SELECT id FROM ulid_test WHERE name = 'test'")
+    ).scalar_one()
+    assert isinstance(raw, str)
+    assert raw == str(ulid_obj)
 
 
 def test_ulid_type_from_str(session):
@@ -54,3 +60,9 @@ def test_ulid_type_from_str(session):
     ).scalar_one()
     assert isinstance(result.id, ULID)
     assert str(result.id) == ulid_str
+    # Check raw DB value is string
+    raw = session.execute(
+        text("SELECT id FROM ulid_test WHERE name = 'strtest'")
+    ).scalar_one()
+    assert isinstance(raw, str)
+    assert raw == ulid_str

@@ -4,34 +4,43 @@ This module provides a SQLAlchemy TypeDecorator for storing ULID objects
 as UUID in the database, and converting them back to ULID on retrieval.
 """
 
-from typing import Any
-
-from sqlalchemy.engine.interfaces import Dialect
-from sqlalchemy.types import UUID, TypeDecorator
+from sqlalchemy.types import CHAR, TypeDecorator
 from ulid import ULID
 
 
 class ULIDType(TypeDecorator):
-    """Custom SQLAlchemy TypeDecorator for ULID.
+    """Platform-independent ULID type.
 
-    Stores ULID as UUID in the database, and converts back to ULID on retrieval.
+    Uses CHAR(26) for storage, storing ULIDs as their string representation.
     """
 
-    impl = UUID  # SQLAlchemy Underlying UUID
+    impl = CHAR(26)  # ULIDs are 26 characters long in string form
+    cache_ok = True
 
-    def process_bind_param(self, value: Any | None, dialect: Dialect) -> Any:  # noqa: ARG002
-        # dialect is required by SQLAlchemy, but not used
+    def process_bind_param(self, value, dialect):
         if value is None:
             return value
         if isinstance(value, ULID):
-            return value.to_uuid()  # Convert ULID object to uuid.UUID
+            return str(value)
         if isinstance(value, str):
-            return ULID.from_str(value).to_uuid()
-        return value
+            return value
+        raise TypeError(f"Expected ULID object or str, got {type(value)}")
 
-    def process_result_value(self, value: Any | None, dialect: Dialect) -> Any:  # noqa: ARG002
+    def process_result_value(self, value, dialect):
         if value is None:
             return value
-        return ULID.from_uuid(value)
+        return ULID.from_str(value)
 
-    cache_ok = True
+    def process_literal_param(self, value, dialect):
+        if value is None:
+            return "NULL"
+        return f"'{value!s}'"
+
+    def coerce_compared_value(self, op, value):
+        if isinstance(value, str):
+            return self.impl
+        return self
+
+    @property
+    def python_type(self):
+        return ULID

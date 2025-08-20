@@ -2,6 +2,7 @@
 
 
 from pydantic import BaseModel
+from pydantic_extra_types.ulid import ULID
 
 from app.schemas.sch_user import EmailStr
 
@@ -9,7 +10,7 @@ from app.schemas.sch_user import EmailStr
 class UserToken(BaseModel):
     """Schema untuk user token."""
 
-    id: int
+    id: ULID
     username: str
     email: EmailStr
     full_name: str

@@ -100,6 +100,9 @@ class SQLiteUserRepository(IUserRepo):
             update_data.pop("password")  # NOTE: hashing handled in service
         for key, value in update_data.items():
             setattr(user_obj, key, value)
+        # Ensure actor_id is ULID object
+        if actor_id is not None and not isinstance(actor_id, ULID):
+            actor_id = ULID.from_str(str(actor_id))
         user_obj.updated_by = actor_id
         self.log.info(
             "Updating user record",
