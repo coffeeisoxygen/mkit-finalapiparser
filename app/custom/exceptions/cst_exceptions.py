@@ -79,6 +79,13 @@ class DataGenericError(DataIntegrityError):
     status_code = 400
 
 
+class InternalSeedingError(AppExceptionError):
+    """Exception raised for internal seeding errors."""
+
+    default_message = "Internal seeding error occurred."
+    status_code = 500
+
+
 # ----------------- Entity Exceptions -----------------
 class EntityNotFoundError(AppExceptionError):
     """Exception raised when an entity is not found."""

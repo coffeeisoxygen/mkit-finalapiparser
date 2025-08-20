@@ -12,6 +12,8 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.config import get_settings
+from app.custom.exceptions.cst_exceptions import InternalSeedingError
+from app.database.core.uow import UnitOfWork
 from app.database.repositories.repo_user import SQLiteUserRepository
 from app.mlogg import logger
 from app.models.db_user import User
@@ -48,6 +50,7 @@ class AdminSeedService:
         """Seed default admin if no active superuser exists.
 
         Returns True if seeded, False if already exists.
+        Raises InternalSeedingError if seeding fails.
         """
         if await self.has_active_superuser():
             self.log.info("Active superuser already exists, skipping seeding.")
@@ -71,16 +74,33 @@ class AdminSeedService:
         # Always use ADM_ID from settings for system admin
         settings = get_settings()
         system_actor_id = settings.ADM_ID
-        repo = SQLiteUserRepository(self.session, autocommit=True)
-        await repo.create(
-            user_create,
-            hashed_password,
-            actor_id=system_actor_id,
-            is_superuser=True,
-        )
-        self.log.info(
-            "Default admin seeded.",
-            username=admin.username,
-            actor_id=str(system_actor_id),
-        )
-        return True
+
+        try:
+            async with UnitOfWork(self.session) as uow:
+                repo = SQLiteUserRepository(uow.session, autocommit=False)
+                await repo.create(
+                    user_create,
+                    hashed_password,
+                    actor_id=system_actor_id,
+                    is_superuser=True,
+                )
+                await uow.commit()
+        except Exception as e:
+            self.log.exception(
+                "Exception during admin seeding",
+                username=admin.username,
+                actor_id=str(system_actor_id),
+                error=str(e),
+            )
+            raise InternalSeedingError(
+                message="Failed to seed default admin.",
+                context={"username": admin.username, "actor_id": str(system_actor_id)},
+                cause=e,
+            ) from e
+        else:
+            self.log.info(
+                "Default admin seeded.",
+                username=admin.username,
+                actor_id=str(system_actor_id),
+            )
+            return True
