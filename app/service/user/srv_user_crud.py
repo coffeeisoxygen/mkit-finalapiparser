@@ -24,7 +24,6 @@ class UserCrudService:
     def __init__(self, session: AsyncSession, hasher: HasherService | None = None):
         self.session = session
         self.hasher = hasher or HasherService()
-        self.repo = SQLiteUserRepository(session, autocommit=False)
         self.log = logger.bind(service="UserCrudService")
 
     @logger_wraps(entry=True, exit=True, level="INFO")
@@ -36,7 +35,8 @@ class UserCrudService:
         """Create user with password hashing."""
         hashed_password = self.hasher.hash_value(user.password)
         async with UnitOfWork(self.session) as uow:
-            new_user = await self.repo.create(user, hashed_password, actor_id)
+            repo = SQLiteUserRepository(uow.session, autocommit=False)
+            new_user = await repo.create(user, hashed_password, actor_id)
             await uow.commit()
             self.log.info(
                 "User created via service", username=user.username, actor_id=actor_id
@@ -45,11 +45,13 @@ class UserCrudService:
 
     @logger_wraps(entry=True, exit=True, level="INFO")
     async def get_user_by_id(self, user_id: uuid.UUID | str) -> UserInDB:
-        return await self.repo.get_by_id(user_id)
+        repo = SQLiteUserRepository(self.session, autocommit=True)
+        return await repo.get_by_id(user_id)
 
     @logger_wraps(entry=True, exit=True, level="INFO")
     async def get_user_by_username(self, username: str) -> UserInDB:
-        return await self.repo.get_by_username(username)
+        repo = SQLiteUserRepository(self.session, autocommit=True)
+        return await repo.get_by_username(username)
 
     @logger_wraps(entry=True, exit=True, level="INFO")
     async def list_users(
@@ -59,8 +61,9 @@ class UserCrudService:
         filter_type: UserFilterType | None = None,
     ) -> list[UserResponse]:
         """List users with dynamic filter type."""
+        repo = SQLiteUserRepository(self.session, autocommit=True)
         filter_type = filter_type or UserFilterType.VALID
-        return await self.repo.list_all(skip=skip, limit=limit, filter_type=filter_type)
+        return await repo.list_all(skip=skip, limit=limit, filter_type=filter_type)
 
     @logger_wraps(entry=True, exit=True, level="INFO")
     async def update_user(
@@ -75,7 +78,8 @@ class UserCrudService:
             update_data["password"] = self.hasher.hash_value(update_data["password"])
         update_schema = UserUpdate(**update_data)
         async with UnitOfWork(self.session) as uow:
-            updated_user = await self.repo.update(user_id, update_schema, actor_id)
+            repo = SQLiteUserRepository(uow.session, autocommit=False)
+            updated_user = await repo.update(user_id, update_schema, actor_id)
             await uow.commit()
             self.log.info(
                 "User updated via service", user_id=user_id, actor_id=actor_id
@@ -85,7 +89,8 @@ class UserCrudService:
     @logger_wraps(entry=True, exit=True, level="INFO")
     async def delete_user(self, user_id: uuid.UUID | str) -> None:
         async with UnitOfWork(self.session) as uow:
-            await self.repo.delete(user_id)
+            repo = SQLiteUserRepository(uow.session, autocommit=False)
+            await repo.delete(user_id)
             await uow.commit()
             self.log.info("User deleted via service", user_id=user_id)
 
@@ -94,7 +99,8 @@ class UserCrudService:
         self, user_id: uuid.UUID | str, actor_id: uuid.UUID | str
     ) -> None:
         async with UnitOfWork(self.session) as uow:
-            await self.repo.soft_delete(user_id, actor_id)
+            repo = SQLiteUserRepository(uow.session, autocommit=False)
+            await repo.soft_delete(user_id, actor_id)
             await uow.commit()
             self.log.info(
                 "User soft deleted via service", user_id=user_id, actor_id=actor_id
