@@ -243,29 +243,22 @@ class SQLiteUserRepository(IUserRepo):
         Raises:
             DataNotFoundError: If user not found.
         """
-        user_id_pk = pk_for_query(user_id)
-        if include_deleted:
-            stmt = select(User).where(User.id == user_id_pk)
-        else:
-            stmt = select(User).where(User.id == user_id_pk, valid_record_filter(User))
-        result = await self.session.execute(stmt)
-        user_obj = result.scalar_one_or_none()
-        if not user_obj:
-            self.log.error("Data not found", method="get_by_id", user_id=user_id_pk)
-            raise DataNotFoundError(context={"user_id": user_id_pk})
+        user_obj = await self._get_user_or_raise(
+            user_id, include_deleted=include_deleted
+        )
         return UserInDB.model_validate(user_obj)
 
-    async def get_by_username(
+    async def _get_user_by_username_or_raise(
         self, username: str, include_deleted: bool = False
-    ) -> UserInDB:
-        """Get user by username.
+    ) -> User:
+        """Get user by username or raise DataNotFoundError.
 
         Args:
             username: Username.
             include_deleted: If True, include soft-deleted users.
 
         Returns:
-            UserInDB: User object.
+            User: ORM user object.
 
         Raises:
             DataNotFoundError: If user not found.
@@ -283,6 +276,26 @@ class SQLiteUserRepository(IUserRepo):
                 "Data not found", method="get_by_username", username=username
             )
             raise DataNotFoundError(context={"username": username})
+        return user_obj
+
+    async def get_by_username(
+        self, username: str, include_deleted: bool = False
+    ) -> UserInDB:
+        """Get user by username.
+
+        Args:
+            username: Username.
+            include_deleted: If True, include soft-deleted users.
+
+        Returns:
+            UserInDB: User object.
+
+        Raises:
+            DataNotFoundError: If user not found.
+        """
+        user_obj = await self._get_user_by_username_or_raise(
+            username, include_deleted=include_deleted
+        )
         return UserInDB.model_validate(user_obj)
 
     async def list_all(
@@ -417,17 +430,8 @@ class SQLiteUserRepository(IUserRepo):
         """
         user_id_pk = pk_for_query(user_id)
         actor_id_pk = pk_for_query(actor_id)
-        self.log.info(
-            "Soft deleting user record",
-            user_id=str(user_id_pk),
-            actor_id=str(actor_id_pk),
-        )
         try:
             await self.audit_repo.soft_delete(user_id_pk, actor_id_pk)
-            if self.autocommit:
-                await self.session.commit()
-            else:
-                await self.session.flush()
         except Exception as e:
             self.log.exception(
                 "Exception during user soft delete",
