@@ -8,6 +8,7 @@ from datetime import datetime
 from typing import Any
 
 from app.custom.exceptions.cst_exceptions import AuditMixinError
+from app.database.repositories.helpers import to_uuid_str
 from app.interfaces.intf_audit import IAuditMixinRepo
 
 
@@ -19,11 +20,12 @@ class AuditMixinRepository(IAuditMixinRepo[Any]):
         self.entity_cls = entity_cls
 
     async def soft_delete(self, entity_id: uuid.UUID, actor_id: uuid.UUID) -> None:
+        # Always use UUID for PK queries, convert to str for audit fields
         obj = await self.session.get(self.entity_cls, entity_id)
         if obj is None:
             raise AuditMixinError(f"Entity not found for soft_delete: {entity_id}")
         obj.is_deleted_flag = True
-        obj.deleted_by = str(actor_id)
+        obj.deleted_by = to_uuid_str(actor_id)
         obj.deleted_at = datetime.now().astimezone()
         await self.session.commit()
 
