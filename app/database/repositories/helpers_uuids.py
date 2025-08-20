@@ -1,7 +1,6 @@
 import uuid
 
 
-# NOTE : Buat SQLITE
 def to_uuid(value: str | uuid.UUID) -> uuid.UUID:
     """Convert a string or UUID to UUID object."""
     if isinstance(value, uuid.UUID):

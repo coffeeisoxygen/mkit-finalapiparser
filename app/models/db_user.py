@@ -25,8 +25,6 @@ class User(Base, TimestampMixin, SoftDeleteMixin):
     is_superuser: Mapped[bool] = mapped_column(Boolean, default=False, index=True)
     is_active: Mapped[bool] = mapped_column(Boolean, default=True, index=True)
 
-    # Audit fields & methods inherited from AuditMixin
-
     def __repr__(self) -> str:
         return f"<User id={self.id} email={self.email} full_name={self.full_name}>"
 
