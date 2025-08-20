@@ -3,13 +3,12 @@
 Can be inherited by any SQLAlchemy model for standardized audit trail.
 """
 
+import uuid
 from datetime import UTC, datetime
 
-from pydantic_extra_types.ulid import ULID
 from sqlalchemy import DateTime, func
+from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column
-
-from app.models.ulid_type import ULIDType
 
 
 class AuditMixin:
@@ -27,14 +26,14 @@ class AuditMixin:
     deleted_at: Mapped[datetime | None] = mapped_column(
         DateTime(timezone=True), nullable=True, index=True
     )
-    deleted_by: Mapped[ULID | None] = mapped_column(
-        ULIDType(), nullable=True, index=True
+    deleted_by: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True), nullable=True, index=True
     )
-    created_by: Mapped[ULID | None] = mapped_column(
-        ULIDType(), nullable=True, index=True
+    created_by: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True), nullable=True, index=True
     )
-    updated_by: Mapped[ULID | None] = mapped_column(
-        ULIDType(), nullable=True, index=True
+    updated_by: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True), nullable=True, index=True
     )
 
     """Audit and soft delete functionality for SQLAlchemy models.

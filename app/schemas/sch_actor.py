@@ -5,21 +5,20 @@ This schema is used for representing audit fields in API responses or internal u
 
 from datetime import datetime
 
-from pydantic import BaseModel, Field, ValidationError, field_validator
+from pydantic import BaseModel, Field
 from pydantic_extra_types.ulid import ULID as ULID_SCHEMA
-from ulid import ULID as ULID_DB
 
 
 class ActorAuditFields(BaseModel):
     """Schema for audit and soft delete fields.
 
     Attributes:
-        created_at: Timestamp when the record was created.
-        updated_at: Timestamp when the record was last updated.
-        deleted_at: Timestamp when the record was soft deleted.
-        deleted_by: ULID of the user who deleted the record.
-        created_by: ULID of the user who created the record.
-        updated_by: ULID of the user who last updated the record.
+        created_at: Timestamp saat record dibuat.
+        updated_at: Timestamp saat record diupdate.
+        deleted_at: Timestamp saat record dihapus (soft delete).
+        deleted_by: ULID user yang menghapus record.
+        created_by: ULID user yang membuat record.
+        updated_by: ULID user yang mengupdate record.
     """
 
     created_at: datetime | None = Field(
@@ -41,30 +40,62 @@ class ActorAuditFields(BaseModel):
         default=None, description="User ID yang mengupdate record"
     )
 
-    @field_validator("deleted_by", "created_by", "updated_by", mode="before")
-    @classmethod
-    def ulid_from_any(cls, v: str | ULID_SCHEMA | ULID_DB | None) -> ULID_SCHEMA | None:
-        """Convert various types to ULID_SCHEMA."""
-        if v is None or isinstance(v, ULID_SCHEMA):
-            return v
-        if isinstance(v, ULID_DB):
-            return ULID_SCHEMA.from_str(str(v))
-        if isinstance(v, str):
-            return ULID_SCHEMA.from_str(v)
-        raise ValidationError(f"Invalid ULID type: {type(v)}")
 
-    @staticmethod
-    def str_to_ulid(value: str | None) -> ULID_SCHEMA | None:
-        """Helper to convert str to ULID or None.
+class ActorBase(BaseModel):
+    """Minimal schema untuk representasi actor/user.
 
-        Args:
-            value: ULID string or None.
+    Attributes:
+        id: ULID user.
+        username: Nama pengguna.
+        full_name: Nama lengkap pengguna.
+    """
 
-        Returns:
-            ULID instance or None.
-        """
-        if value is None:
-            return None
-        return ULID_SCHEMA.from_str(str(value))
+    id: ULID_SCHEMA
+    username: str
+    full_name: str
 
-    model_config = {"from_attributes": True, "populate_by_name": True}
+
+class ActorReference(BaseModel):
+    """Schema referensi actor/user untuk audit fields.
+
+    Attributes:
+        id: ULID user.
+        name: Nama pengguna (opsional).
+    """
+
+    id: ULID_SCHEMA
+    name: str | None = None
+
+
+class AuditActionLog(BaseModel):
+    """Schema untuk log aktivitas/audit trail.
+
+    Attributes:
+        id: ULID log.
+        actor_id: ULID actor yang melakukan aksi.
+        action: Nama aksi/event.
+        target_type: Tipe target (misal: 'user', 'module').
+        target_id: ULID target.
+        timestamp: Waktu aksi.
+        metadata: Info tambahan (opsional).
+    """
+
+    id: ULID_SCHEMA
+    actor_id: ULID_SCHEMA
+    action: str
+    target_type: str
+    target_id: ULID_SCHEMA | None = None
+    timestamp: datetime
+    metadata: dict | None = None
+
+
+class SoftDeleteSchema(BaseModel):
+    """Schema untuk response/command soft delete.
+
+    Attributes:
+        deleted_by: ULID user yang menghapus.
+        deleted_at: Waktu penghapusan.
+    """
+
+    deleted_by: ULID_SCHEMA
+    deleted_at: datetime
