@@ -51,12 +51,12 @@ class SQLiteUserRepository(IUserRepo):
         return to_uuid(user_id) == ADM_ID
 
     async def _get_user_or_raise(self, user_id: uuid.UUID | str) -> User:
-        # Always use UUID for PK queries
-        user_id_uuid = to_uuid(user_id)
-        user_obj = await self.session.get(User, user_id_uuid)
+        # Always use pk_for_query for PK queries
+        user_id_pk = pk_for_query(user_id)
+        user_obj = await self.session.get(User, user_id_pk)
         if not user_obj:
-            self.log.error("Data not found", user_id=str(user_id_uuid))
-            raise DataNotFoundError(context={"user_id": str(user_id_uuid)})
+            self.log.error("Data not found", user_id=str(user_id_pk))
+            raise DataNotFoundError(context={"user_id": str(user_id_pk)})
         return user_obj
 
     async def _check_duplicate_user(self, username: str, email: str) -> None:
@@ -115,13 +115,13 @@ class SQLiteUserRepository(IUserRepo):
         return UserInDB.model_validate(new_user)
 
     async def get_by_id(self, user_id: uuid.UUID | str) -> UserInDB:
-        user_id_str = pk_for_query(user_id)
-        stmt = select(User).where(User.id == user_id_str, valid_record_filter(User))
+        user_id_pk = pk_for_query(user_id)
+        stmt = select(User).where(User.id == user_id_pk, valid_record_filter(User))
         result = await self.session.execute(stmt)
         user_obj = result.scalar_one_or_none()
         if not user_obj:
-            self.log.error("Data not found", method="get_by_id", user_id=user_id_str)
-            raise DataNotFoundError(context={"user_id": user_id_str})
+            self.log.error("Data not found", method="get_by_id", user_id=user_id_pk)
+            raise DataNotFoundError(context={"user_id": user_id_pk})
         return UserInDB.model_validate(user_obj)
 
     async def get_by_username(self, username: str) -> UserInDB:
@@ -172,21 +172,21 @@ class SQLiteUserRepository(IUserRepo):
         return UserInDB.model_validate(user_obj)
 
     async def delete(self, user_id: uuid.UUID | str) -> None:
-        user_id_uuid = to_uuid(user_id)
-        user_obj = await self._get_user_or_raise(user_id_uuid)
+        user_id_pk = pk_for_query(user_id)
+        user_obj = await self._get_user_or_raise(user_id_pk)
 
-        if self._is_admin_id(user_id_uuid):
+        if self._is_admin_id(user_id_pk):
             self.log.error(
-                "Attempt to delete system admin forbidden", user_id=str(user_id_uuid)
+                "Attempt to delete system admin forbidden", user_id=str(user_id_pk)
             )
             raise AdminCantDeleteError(
                 context={
-                    "user_id": str(user_id_uuid),
+                    "user_id": str(user_id_pk),
                     "error": "System admin cannot be deleted.",
                 }
             )
 
-        self.log.info("Deleting user record", user_id=str(user_id_uuid))
+        self.log.info("Deleting user record", user_id=str(user_id_pk))
         try:
             await self.session.delete(user_obj)
             if self.autocommit:
@@ -195,30 +195,30 @@ class SQLiteUserRepository(IUserRepo):
                 await self.session.flush()
         except Exception as e:
             self.log.exception(
-                "Exception during user delete", user_id=str(user_id_uuid), error=str(e)
+                "Exception during user delete", user_id=str(user_id_pk), error=str(e)
             )
             raise DataGenericError(
                 "Failed to delete user record",
                 cause=e,
-                context={"user_id": str(user_id_uuid)},
+                context={"user_id": str(user_id_pk)},
             ) from e
 
     async def soft_delete(
         self, user_id: uuid.UUID | str, actor_id: uuid.UUID | str
     ) -> None:
-        user_id_uuid = to_uuid(user_id)
-        actor_id_uuid = to_uuid(actor_id)
-        user_obj = await self._get_user_or_raise(user_id_uuid)
+        user_id_pk = pk_for_query(user_id)
+        actor_id_pk = pk_for_query(actor_id)
+        user_obj = await self._get_user_or_raise(user_id_pk)
 
         self.log.info(
             "Soft deleting user record",
-            user_id=str(user_id_uuid),
-            actor_id=str(actor_id_uuid),
+            user_id=str(user_id_pk),
+            actor_id=str(actor_id_pk),
         )
         try:
-            await self.audit_repo.soft_delete(user_id_uuid, actor_id_uuid)
+            await self.audit_repo.soft_delete(user_id_pk, actor_id_pk)
             user_obj.is_deleted_flag = True
-            user_obj.deleted_by = to_uuid_str(actor_id_uuid)
+            user_obj.deleted_by = to_uuid_str(actor_id_pk)
             user_obj.deleted_at = datetime.now().astimezone(UTC)
 
             if self.autocommit:
@@ -229,11 +229,11 @@ class SQLiteUserRepository(IUserRepo):
             self.log.exception(
                 "Exception during user soft delete",
                 method="soft_delete",
-                user_id=str(user_id_uuid),
+                user_id=str(user_id_pk),
                 error=str(e),
             )
             raise DataGenericError(
                 "Failed to soft delete user record",
                 cause=e,
-                context={"user_id": str(user_id_uuid)},
+                context={"user_id": str(user_id_pk)},
             ) from e
