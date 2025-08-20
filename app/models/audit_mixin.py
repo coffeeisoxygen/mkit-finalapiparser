@@ -10,7 +10,16 @@ from sqlalchemy.orm import Mapped, mapped_column
 
 
 class AuditMixin:
-    """Audit and soft delete functionality for SQLAlchemy models."""
+    """Audit and soft delete functionality for SQLAlchemy models.
+
+    Fields:
+        created_at: Timestamp saat record dibuat
+        updated_at: Timestamp saat record diupdate
+        created_by: User ID yang membuat record
+        updated_by: User ID yang mengupdate record
+        deleted_at: Timestamp saat record dihapus (soft delete)
+        deleted_by: User ID yang menghapus record
+    """
 
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), index=True
@@ -34,18 +43,7 @@ class AuditMixin:
         String(36), nullable=True, index=True, default=None
     )
 
-    """Audit and soft delete functionality for SQLAlchemy models.
-
-    Fields:
-        created_at: Timestamp saat record dibuat
-        updated_at: Timestamp saat record diupdate
-        created_by: User ID yang membuat record
-        updated_by: User ID yang mengupdate record
-        deleted_at: Timestamp saat record dihapus (soft delete)
-        deleted_by: User ID yang menghapus record
-    """
-
-    def soft_delete(self, user_id=None):  # noqa: ANN001
+    def soft_delete(self, user_id: str | None = None):
         """Mark record as soft deleted."""
         self.deleted_at = datetime.now(UTC)
         self.deleted_by = user_id
@@ -56,7 +54,7 @@ class AuditMixin:
         self.deleted_by = None
 
     @property
-    def is_deleted(self):
+    def is_deleted(self) -> bool:
         """Check if record is soft deleted (data logic).
 
         Returns:
