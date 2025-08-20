@@ -26,58 +26,58 @@ from app.database.repositories.helpers_uuids import (
 from app.database.repositories.repo_audit import AuditMixinRepository
 from app.mlogg import logger
 from app.models.db_user import User
-from app.schemas.sch_user import UserCreate, UserInDB, UserResponse, UserUpdate, UserFilterType
+from app.schemas.sch_user import (
+    UserCreate,
+    UserFilterType,
+    UserInDB,
+    UserResponse,
+    UserUpdate,
+)
 
 settings = get_settings()
 ADM_ID = uuid.UUID(str(settings.ADM_ID))
 
 
 class SQLiteUserRepository(IUserRepo):
-    async def activate(
-        self, user_id: uuid.UUID | str, actor_id: uuid.UUID | str
+    def _actor_str(self, actor_id: uuid.UUID | str) -> str:
+        """Convert actor_id to canonical string UUID."""
+        return to_uuid_str(actor_id)
+
+    async def _set_active_flag(
+        self, user_id: uuid.UUID | str, actor_id: uuid.UUID | str, active: bool
     ) -> UserInDB:
-        """Activate user (set is_active=True, is_deleted_flag=False).
+        """Set user active/inactive status.
 
         Args:
             user_id: PK (UUID or str).
-            actor_id: Actor performing activation.
+            actor_id: Actor performing action.
+            active: True to activate, False to deactivate.
 
         Returns:
-            UserInDB: Activated user.
+            UserInDB: Updated user.
 
         Raises:
             DataNotFoundError: If user not found.
         """
         user_obj = await self._get_user_or_raise(user_id)
-        user_obj.is_active = True
+        user_obj.is_active = active
         user_obj.is_deleted_flag = False
-        user_obj.updated_by = to_uuid_str(actor_id)
+        user_obj.updated_by = self._actor_str(actor_id)
         user_obj.updated_at = datetime.now().astimezone(UTC)
         await self._commit_or_flush(user_obj)
         return UserInDB.model_validate(user_obj)
+
+    async def activate(
+        self, user_id: uuid.UUID | str, actor_id: uuid.UUID | str
+    ) -> UserInDB:
+        """Activate user (set is_active=True, is_deleted_flag=False)."""
+        return await self._set_active_flag(user_id, actor_id, True)
 
     async def deactivate(
         self, user_id: uuid.UUID | str, actor_id: uuid.UUID | str
     ) -> UserInDB:
-        """Deactivate user (set is_active=False, is_deleted_flag=False).
-
-        Args:
-            user_id: PK (UUID or str).
-            actor_id: Actor performing deactivation.
-
-        Returns:
-            UserInDB: Deactivated user.
-
-        Raises:
-            DataNotFoundError: If user not found.
-        """
-        user_obj = await self._get_user_or_raise(user_id)
-        user_obj.is_active = False
-        user_obj.is_deleted_flag = False
-        user_obj.updated_by = to_uuid_str(actor_id)
-        user_obj.updated_at = datetime.now().astimezone(UTC)
-        await self._commit_or_flush(user_obj)
-        return UserInDB.model_validate(user_obj)
+        """Deactivate user (set is_active=False, is_deleted_flag=False)."""
+        return await self._set_active_flag(user_id, actor_id, False)
 
     """SQLite implementation of IUserRepo.
 
@@ -115,11 +115,14 @@ class SQLiteUserRepository(IUserRepo):
         """
         return to_uuid(user_id) == ADM_ID
 
-    async def _get_user_or_raise(self, user_id: uuid.UUID | str) -> User:
+    async def _get_user_or_raise(
+        self, user_id: uuid.UUID | str, include_deleted: bool = False
+    ) -> User:
         """Get user by PK or raise DataNotFoundError.
 
         Args:
             user_id: PK (UUID or str).
+            include_deleted: If True, include soft-deleted users.
 
         Returns:
             User: ORM user object.
@@ -128,7 +131,12 @@ class SQLiteUserRepository(IUserRepo):
             DataNotFoundError: If user not found.
         """
         user_id_pk = pk_for_query(user_id)
-        user_obj = await self.session.get(User, user_id_pk)
+        if include_deleted:
+            stmt = select(User).where(User.id == user_id_pk)
+        else:
+            stmt = select(User).where(User.id == user_id_pk, valid_record_filter(User))
+        result = await self.session.execute(stmt)
+        user_obj = result.scalar_one_or_none()
         if not user_obj:
             self.log.error("Data not found", user_id=str(user_id_pk))
             raise DataNotFoundError(context={"user_id": str(user_id_pk)})
@@ -278,7 +286,10 @@ class SQLiteUserRepository(IUserRepo):
         return UserInDB.model_validate(user_obj)
 
     async def list_all(
-        self, skip: int = 0, limit: int = 100, filter_type: UserFilterType = UserFilterType.VALID
+        self,
+        skip: int = 0,
+        limit: int = 100,
+        filter_type: UserFilterType = UserFilterType.VALID,
     ) -> list[UserResponse]:
         """List all users.
 
@@ -406,8 +417,6 @@ class SQLiteUserRepository(IUserRepo):
         """
         user_id_pk = pk_for_query(user_id)
         actor_id_pk = pk_for_query(actor_id)
-        user_obj = await self._get_user_or_raise(user_id_pk)
-
         self.log.info(
             "Soft deleting user record",
             user_id=str(user_id_pk),
@@ -415,10 +424,6 @@ class SQLiteUserRepository(IUserRepo):
         )
         try:
             await self.audit_repo.soft_delete(user_id_pk, actor_id_pk)
-            user_obj.is_deleted_flag = True
-            user_obj.deleted_by = to_uuid_str(actor_id_pk)
-            user_obj.deleted_at = datetime.now().astimezone(UTC)
-
             if self.autocommit:
                 await self.session.commit()
             else:
