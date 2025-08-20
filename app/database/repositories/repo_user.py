@@ -11,14 +11,19 @@ from app.custom.exceptions.cst_exceptions import (
     DataGenericError,
     DataNotFoundError,
 )
+from app.database.interfaces.intf_user import IUserRepo
+from app.database.repositories.filter_helpers import (
+    all_records_filter,
+    inactive_filter,
+    soft_deleted_filter,
+    valid_record_filter,
+)
 from app.database.repositories.helpers import (
     pk_for_query,
     to_uuid,
     to_uuid_str,
-    valid_record_filter,
 )
 from app.database.repositories.repo_audit import AuditMixinRepository
-from app.interfaces.intf_user import IUserRepo
 from app.mlogg import logger
 from app.models.db_user import User
 from app.schemas.sch_user import UserCreate, UserInDB, UserResponse, UserUpdate
@@ -28,6 +33,52 @@ ADM_ID = uuid.UUID(str(settings.ADM_ID))
 
 
 class SQLiteUserRepository(IUserRepo):
+    async def activate(
+        self, user_id: uuid.UUID | str, actor_id: uuid.UUID | str
+    ) -> UserInDB:
+        """Activate user (set is_active=True, is_deleted_flag=False).
+
+        Args:
+            user_id: PK (UUID or str).
+            actor_id: Actor performing activation.
+
+        Returns:
+            UserInDB: Activated user.
+
+        Raises:
+            DataNotFoundError: If user not found.
+        """
+        user_obj = await self._get_user_or_raise(user_id)
+        user_obj.is_active = True
+        user_obj.is_deleted_flag = False
+        user_obj.updated_by = to_uuid_str(actor_id)
+        user_obj.updated_at = datetime.now().astimezone(UTC)
+        await self._commit_or_flush(user_obj)
+        return UserInDB.model_validate(user_obj)
+
+    async def deactivate(
+        self, user_id: uuid.UUID | str, actor_id: uuid.UUID | str
+    ) -> UserInDB:
+        """Deactivate user (set is_active=False, is_deleted_flag=False).
+
+        Args:
+            user_id: PK (UUID or str).
+            actor_id: Actor performing deactivation.
+
+        Returns:
+            UserInDB: Deactivated user.
+
+        Raises:
+            DataNotFoundError: If user not found.
+        """
+        user_obj = await self._get_user_or_raise(user_id)
+        user_obj.is_active = False
+        user_obj.is_deleted_flag = False
+        user_obj.updated_by = to_uuid_str(actor_id)
+        user_obj.updated_at = datetime.now().astimezone(UTC)
+        await self._commit_or_flush(user_obj)
+        return UserInDB.model_validate(user_obj)
+
     """SQLite implementation of IUserRepo.
 
     All PK queries use pk_for_query for DB compatibility.
@@ -169,11 +220,14 @@ class SQLiteUserRepository(IUserRepo):
         self.log.info("User created", username=user.username, actor_id=actor_id_str)
         return UserInDB.model_validate(new_user)
 
-    async def get_by_id(self, user_id: uuid.UUID | str) -> UserInDB:
+    async def get_by_id(
+        self, user_id: uuid.UUID | str, include_deleted: bool = False
+    ) -> UserInDB:
         """Get user by ID.
 
         Args:
             user_id: PK (UUID or str).
+            include_deleted: If True, include soft-deleted users.
 
         Returns:
             UserInDB: User object.
@@ -182,7 +236,10 @@ class SQLiteUserRepository(IUserRepo):
             DataNotFoundError: If user not found.
         """
         user_id_pk = pk_for_query(user_id)
-        stmt = select(User).where(User.id == user_id_pk, valid_record_filter(User))
+        if include_deleted:
+            stmt = select(User).where(User.id == user_id_pk)
+        else:
+            stmt = select(User).where(User.id == user_id_pk, valid_record_filter(User))
         result = await self.session.execute(stmt)
         user_obj = result.scalar_one_or_none()
         if not user_obj:
@@ -190,11 +247,14 @@ class SQLiteUserRepository(IUserRepo):
             raise DataNotFoundError(context={"user_id": user_id_pk})
         return UserInDB.model_validate(user_obj)
 
-    async def get_by_username(self, username: str) -> UserInDB:
+    async def get_by_username(
+        self, username: str, include_deleted: bool = False
+    ) -> UserInDB:
         """Get user by username.
 
         Args:
             username: Username.
+            include_deleted: If True, include soft-deleted users.
 
         Returns:
             UserInDB: User object.
@@ -202,7 +262,12 @@ class SQLiteUserRepository(IUserRepo):
         Raises:
             DataNotFoundError: If user not found.
         """
-        stmt = select(User).where(User.username == username, valid_record_filter(User))
+        if include_deleted:
+            stmt = select(User).where(User.username == username)
+        else:
+            stmt = select(User).where(
+                User.username == username, valid_record_filter(User)
+            )
         result = await self.session.execute(stmt)
         user_obj = result.scalar_one_or_none()
         if not user_obj:
@@ -212,17 +277,30 @@ class SQLiteUserRepository(IUserRepo):
             raise DataNotFoundError(context={"username": username})
         return UserInDB.model_validate(user_obj)
 
-    async def list_all(self, skip: int = 0, limit: int = 100) -> list[UserResponse]:
+    async def list_all(
+        self, skip: int = 0, limit: int = 100, filter_type: str = "valid"
+    ) -> list[UserResponse]:
         """List all users.
 
         Args:
             skip: Offset.
             limit: Max records.
+            filter_type: "valid", "soft_deleted", "inactive", "all"
 
         Returns:
             list[UserResponse]: List of users.
         """
-        stmt = select(User).where(valid_record_filter(User)).offset(skip).limit(limit)
+        if filter_type == "valid":
+            filter_cond = valid_record_filter(User)
+        elif filter_type == "soft_deleted":
+            filter_cond = soft_deleted_filter(User)
+        elif filter_type == "inactive":
+            filter_cond = inactive_filter(User)
+        elif filter_type == "all":
+            filter_cond = all_records_filter(User)
+        else:
+            filter_cond = valid_record_filter(User)
+        stmt = select(User).where(filter_cond).offset(skip).limit(limit)
         result = await self.session.execute(stmt)
         users = result.scalars().all()
         return [UserResponse.model_validate(u) for u in users]

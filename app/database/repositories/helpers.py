@@ -27,8 +27,10 @@ def to_uuid(value: str | uuid.UUID) -> uuid.UUID:
     if isinstance(value, uuid.UUID):
         return value
     if isinstance(value, str):
-        return uuid.UUID(value)
-    raise ValueError(f"to_uuid only accepts str or UUID, got {type(value).__name__}")
+        try:
+            return uuid.UUID(value)
+        except ValueError as e:
+            raise ValueError(f"Invalid UUID string: {value}") from e
 
 
 def to_uuid_str(value: str | uuid.UUID) -> str:
