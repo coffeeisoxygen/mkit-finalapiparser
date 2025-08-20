@@ -19,7 +19,7 @@ class ULIDType(TypeDecorator):
 
     impl = UUID  # SQLAlchemy Underlying UUID
 
-    def process_bind_param(self, value: Any | None, dialect: Dialect) -> Any:
+    def process_bind_param(self, value: Any | None, dialect: Dialect) -> Any:  # noqa: ARG002
         # dialect is required by SQLAlchemy, but not used
         if value is None:
             return value
@@ -29,7 +29,7 @@ class ULIDType(TypeDecorator):
             return ULID.from_str(value).to_uuid()
         return value
 
-    def process_result_value(self, value: Any | None, dialect: Dialect) -> Any:
+    def process_result_value(self, value: Any | None, dialect: Dialect) -> Any:  # noqa: ARG002
         if value is None:
             return value
         return ULID.from_uuid(value)
