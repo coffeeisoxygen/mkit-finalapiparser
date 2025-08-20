@@ -1,17 +1,15 @@
 """schemas user login / crud."""
 
+import uuid
 from datetime import datetime
 
 from pydantic import BaseModel, EmailStr, Field
-from pydantic_extra_types.ulid import ULID
 
 from app.schemas.cmn_validator import (
     AlphanumericUnderscoreStr,
     AlphanumericWithSpaceStr,
     PasswordStrongStr,
 )
-
-# TODO : Implementasi dan rapihakn model , dsini nati harus ada validasi dan json_schema
 
 
 class UserBase(BaseModel):
@@ -80,7 +78,7 @@ class UserInDB(BaseModel):
     untuk kebutuhan repository sih ini agar ngga pusing.
     """
 
-    id: ULID  # ULID type for database id
+    id: uuid.UUID
     username: str
     email: str
     full_name: str
@@ -90,9 +88,9 @@ class UserInDB(BaseModel):
     is_deleted: bool
     created_at: datetime | None
     updated_at: datetime | None
-    created_by: ULID | None
-    updated_by: ULID | None
+    created_by: uuid.UUID | None
+    updated_by: uuid.UUID | None
     deleted_at: datetime | None
-    deleted_by: ULID | None
+    deleted_by: uuid.UUID | None
 
     model_config = {"from_attributes": True, "populate_by_name": True}
