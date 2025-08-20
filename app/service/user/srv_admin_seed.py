@@ -62,7 +62,11 @@ class AdminSeedService:
             full_name="Default Admin",
             password="admin@123",
         )
+        # Always use ADM_ID from settings for system admin
+        settings = get_settings()
+        system_actor_id = settings.ADM_ID
         user_create = UserCreate(
+            id=system_actor_id,
             username=admin.username,
             email=admin.email,
             full_name=admin.full_name,
@@ -70,10 +74,6 @@ class AdminSeedService:
         )
         # Hash password
         hashed_password = self.hasher.hash_value(user_create.password)
-
-        # Always use ADM_ID from settings for system admin
-        settings = get_settings()
-        system_actor_id = settings.ADM_ID
 
         try:
             async with UnitOfWork(self.session) as uow:

@@ -66,23 +66,10 @@ async def test_repo_user_soft_delete(test_db_session):
 
 @pytest.mark.asyncio
 async def test_repo_user_admin_cannot_delete(test_db_session):
+    from app.service.user.srv_admin_seed import AdminSeedService
+
+    # Ensure admin exists using seeder
+    await AdminSeedService(test_db_session).seed_default_admin()
     repo = SQLiteUserRepository(test_db_session)
-    # Ensure admin exists
-    admin_result = await test_db_session.execute(
-        select(User).where(User.id == str(ADM_ID))
-    )
-    admin_user = admin_result.scalar_one_or_none()
-    if not admin_user:
-        # Create admin if not exists
-        admin_user = User(
-            id=str(ADM_ID),
-            username="admin",
-            email="admin@example.com",
-            full_name="Admin",
-            hashed_password="hashed",
-            is_superuser=True,
-        )
-        test_db_session.add(admin_user)
-        await test_db_session.commit()
     with pytest.raises(AdminCantDeleteError):
         await repo.delete(str(ADM_ID))

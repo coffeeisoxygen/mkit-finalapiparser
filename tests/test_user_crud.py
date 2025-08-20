@@ -219,8 +219,7 @@ async def test_admin_cannot_be_deleted(test_db_session):
     adm_id = uuid.UUID(str(settings.ADM_ID))
     service = UserCrudService(test_db_session)
     # Ensure admin exists using seeder
-    seeder = AdminSeedService(test_db_session)
-    await seeder.seed_default_admin()
+    await AdminSeedService(test_db_session).seed_default_admin()
     # Diagnostic: fetch admin user directly after seeding
     admin_result = await test_db_session.execute(select(User).where(User.id == adm_id))
     admin_user = admin_result.scalar_one_or_none()

@@ -66,6 +66,7 @@ class AuditMixinRepository(IAuditMixinRepo[Any]):
         obj.deleted_by = to_uuid_str(actor_id)
         obj.deleted_at = datetime.now().astimezone()
         await self.session.commit()
+        await self.session.refresh(obj)
 
     async def restore(self, entity_id: str | uuid.UUID) -> None:
         """Restore a soft deleted record by clearing is_deleted_flag and audit fields.
@@ -85,6 +86,7 @@ class AuditMixinRepository(IAuditMixinRepo[Any]):
         obj.deleted_by = None
         obj.deleted_at = None
         await self.session.commit()
+        await self.session.refresh(obj)
 
     async def get_audit_log(self, entity_id: str | uuid.UUID) -> dict:
         """Retrieve audit log fields for a given entity.

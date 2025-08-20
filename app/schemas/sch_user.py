@@ -46,6 +46,7 @@ class AdminSeeder(
 ):
     """Schema untuk seeding admin user."""
 
+    id: uuid.UUID
     password: str = Field(
         ..., min_length=6
     )  # NOTE: plain password, nanti di-hash di service
