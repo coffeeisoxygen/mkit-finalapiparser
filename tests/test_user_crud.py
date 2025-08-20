@@ -4,6 +4,7 @@ import pytest
 from app.models.db_user import User
 from app.schemas.sch_user import UserCreate, UserUpdate
 from app.service.user.srv_user_crud import UserCrudService
+from pydantic import ValidationError
 from sqlalchemy import select
 
 
@@ -112,3 +113,72 @@ async def test_soft_delete_user(test_db_session):
     fetched = result.scalar_one()
     assert fetched.deleted_at is not None
     assert fetched.deleted_by == actor_id
+
+
+@pytest.mark.asyncio
+async def test_create_user_duplicate_username_email(test_db_session):
+    service = UserCrudService(test_db_session)
+    user1 = UserCreate(
+        username="edgeuser",
+        email="edgeuser@example.com",
+        full_name="Edge User",
+        password="password@123",
+    )
+    actor_id = uuid.uuid4()
+    await service.create_user(user1, actor_id=actor_id)
+    user2 = UserCreate(
+        username="edgeuser",
+        email="edgeuser@example.com",
+        full_name="Edge User 2",
+        password="password@456",
+    )
+    with pytest.raises(Exception):
+        await service.create_user(user2, actor_id=actor_id)
+
+
+@pytest.mark.asyncio
+async def test_get_user_by_invalid_id(test_db_session):
+    service = UserCrudService(test_db_session)
+    invalid_id = uuid.uuid4()
+    with pytest.raises(Exception):
+        await service.get_user_by_id(invalid_id)
+
+
+@pytest.mark.asyncio
+async def test_update_nonexistent_user(test_db_session):
+    service = UserCrudService(test_db_session)
+    invalid_id = uuid.uuid4()
+    update = UserUpdate(full_name="Should Not Exist")
+    actor_id = uuid.uuid4()
+    with pytest.raises(Exception):
+        await service.update_user(invalid_id, update, actor_id=actor_id)
+
+
+@pytest.mark.asyncio
+async def test_delete_nonexistent_user(test_db_session):
+    service = UserCrudService(test_db_session)
+    invalid_id = uuid.uuid4()
+    with pytest.raises(Exception):
+        await service.delete_user(invalid_id)
+
+
+@pytest.mark.asyncio
+async def test_soft_delete_nonexistent_user(test_db_session):
+    service = UserCrudService(test_db_session)
+    invalid_id = uuid.uuid4()
+    actor_id = uuid.uuid4()
+    with pytest.raises(Exception):
+        await service.soft_delete_user(invalid_id, actor_id=actor_id)
+
+
+@pytest.mark.asyncio
+async def test_create_user_empty_fields(test_db_session):
+    service = UserCrudService(test_db_session)
+    actor_id = uuid.uuid4()
+    with pytest.raises(ValidationError):
+        UserCreate(
+            username="",
+            email="",
+            full_name="",
+            password="",
+        )
