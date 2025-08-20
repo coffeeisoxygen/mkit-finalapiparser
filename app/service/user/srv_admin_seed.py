@@ -8,8 +8,6 @@ condition to meet:
     - jika ada record user dengan is_superuser = true, maka tidak perlu melakukan seeding
 """
 
-import uuid
-
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -46,7 +44,6 @@ class AdminSeedService:
     async def seed_default_admin(
         self,
         admin_data: AdminSeeder | None = None,
-        actor_id: uuid.UUID | None = None,
     ) -> bool:
         """Seed default admin if no active superuser exists.
 
@@ -71,8 +68,9 @@ class AdminSeedService:
         # Hash password
         hashed_password = self.hasher.hash_value(user_create.password)
 
-        # Use provided actor_id or default system UUID
-        system_actor_id = actor_id or get_settings().ADM_ID
+        # Always use ADM_ID from settings for system admin
+        settings = get_settings()
+        system_actor_id = settings.ADM_ID
         repo = SQLiteUserRepository(self.session, autocommit=True)
         await repo.create(
             user_create,

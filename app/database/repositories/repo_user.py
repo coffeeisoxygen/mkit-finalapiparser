@@ -39,8 +39,18 @@ class SQLiteUserRepository(IUserRepo):
 
     # ----------------- Helper Methods -----------------
     def _to_uuid(self, value: uuid.UUID | str) -> uuid.UUID:
-        """Convert str or UUID to UUID."""
-        return value if isinstance(value, uuid.UUID) else uuid.UUID(str(value))
+        """Convert str or UUID to UUID.
+
+        Raises:
+            ValueError: If value is not str or uuid.UUID.
+        """
+        if isinstance(value, uuid.UUID):
+            return value
+        if isinstance(value, str):
+            return uuid.UUID(value)
+        raise ValueError(
+            f"_to_uuid only accepts str or UUID, got {type(value).__name__}"
+        )
 
     def _is_admin_id(self, user_id: uuid.UUID) -> bool:
         return user_id == ADM_ID
@@ -85,6 +95,14 @@ class SQLiteUserRepository(IUserRepo):
         actor_id = self._to_uuid(actor_id)
 
         await self._check_duplicate_user(user.username, user.email)
+
+        # Debug log for audit fields
+        self.log.debug(
+            "Creating user with audit fields",
+            username=user.username,
+            actor_id=actor_id,
+            created_by=actor_id,
+        )
 
         new_user = User(
             username=user.username,

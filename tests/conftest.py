@@ -6,6 +6,7 @@ import pytest
 from app.config import get_settings
 from app.database import DatabaseSessionManager, create_tables, sessionmanager
 from app.models import Base
+from app.service.user.srv_admin_seed import AdminSeedService
 from dotenv import load_dotenv
 from loguru import logger
 
@@ -59,3 +60,9 @@ async def test_db_session():
 async def test_print_db_session(test_db_session):
     print("AsyncSession:", test_db_session)
     assert test_db_session is not None
+
+
+@pytest.fixture
+async def seeded_admin(test_db_session):
+    service = AdminSeedService(test_db_session)
+    await service.seed_default_admin()

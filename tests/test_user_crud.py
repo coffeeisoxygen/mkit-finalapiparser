@@ -1,6 +1,10 @@
+import contextlib
 import uuid
 
 import pytest
+from app.config import get_settings
+from app.custom.exceptions.cst_exceptions import AdminCantDeleteError
+from app.database.repositories.repo_user import ADM_ID
 from app.models.db_user import User
 from app.schemas.sch_user import UserCreate, UserUpdate
 from app.service.user.srv_user_crud import UserCrudService
@@ -182,3 +186,26 @@ async def test_create_user_empty_fields(test_db_session):
             full_name="",
             password="",
         )
+
+
+@pytest.mark.asyncio
+async def test_admin_cannot_be_deleted(test_db_session):
+    settings = get_settings()
+    adm_id = uuid.UUID(str(settings.ADM_ID))
+    service = UserCrudService(test_db_session)
+    # Ensure admin exists
+    user = UserCreate(
+        username="admin",
+        email="admin@example.com",
+        full_name="Default Admin",
+        password="admin@123",
+    )
+    actor_id = uuid.uuid4()
+    with contextlib.suppress(Exception):
+        await service.create_user(user, actor_id=actor_id)
+    # Try to delete admin
+    with pytest.raises(AdminCantDeleteError):
+        await service.delete_user(adm_id)
+    # Try to delete admin
+    with pytest.raises(AdminCantDeleteError):
+        await service.delete_user(ADM_ID)
