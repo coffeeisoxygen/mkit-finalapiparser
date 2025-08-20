@@ -1,5 +1,3 @@
-"""fungsi fungsi helper generic shared among queries."""
-
 import uuid
 from typing import Any
 
@@ -48,3 +46,20 @@ def to_uuid(value: str | uuid.UUID) -> uuid.UUID:
     if isinstance(value, str):
         return uuid.UUID(value)
     raise ValueError(f"to_uuid only accepts str or UUID, got {type(value).__name__}")
+
+
+def pk_for_query(value: str | uuid.UUID) -> str:
+    """Return a string UUID for PK queries (SQLite compatibility)."""
+    if isinstance(value, uuid.UUID):
+        return str(value)
+    if isinstance(value, str):
+        try:
+            return str(uuid.UUID(value))
+        except Exception:
+            return value
+    raise ValueError(
+        f"pk_for_query only accepts str or UUID, got {type(value).__name__}"
+    )
+
+
+"""fungsi fungsi helper generic shared among queries."""

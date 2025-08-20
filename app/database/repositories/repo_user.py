@@ -11,7 +11,12 @@ from app.custom.exceptions.cst_exceptions import (
     DataGenericError,
     DataNotFoundError,
 )
-from app.database.repositories.helpers import to_uuid, to_uuid_str, valid_record_filter
+from app.database.repositories.helpers import (
+    pk_for_query,
+    to_uuid,
+    to_uuid_str,
+    valid_record_filter,
+)
 from app.database.repositories.repo_audit import AuditMixinRepository
 from app.interfaces.intf_user import IUserRepo
 from app.mlogg import logger
@@ -110,15 +115,13 @@ class SQLiteUserRepository(IUserRepo):
         return UserInDB.model_validate(new_user)
 
     async def get_by_id(self, user_id: uuid.UUID | str) -> UserInDB:
-        user_id_uuid = to_uuid(user_id)
-        stmt = select(User).where(User.id == user_id_uuid, valid_record_filter(User))
+        user_id_str = pk_for_query(user_id)
+        stmt = select(User).where(User.id == user_id_str, valid_record_filter(User))
         result = await self.session.execute(stmt)
         user_obj = result.scalar_one_or_none()
         if not user_obj:
-            self.log.error(
-                "Data not found", method="get_by_id", user_id=str(user_id_uuid)
-            )
-            raise DataNotFoundError(context={"user_id": str(user_id_uuid)})
+            self.log.error("Data not found", method="get_by_id", user_id=user_id_str)
+            raise DataNotFoundError(context={"user_id": user_id_str})
         return UserInDB.model_validate(user_obj)
 
     async def get_by_username(self, username: str) -> UserInDB:
