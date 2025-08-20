@@ -92,16 +92,16 @@ class SQLiteUserRepository(IUserRepo):
     ) -> UserInDB:
         if actor_id is None:
             raise ValueError("actor_id is required for audit trail")
-        actor_id = self._to_uuid(actor_id)
+        actor_id_uuid = self._to_uuid(actor_id)
+        actor_id_str = str(actor_id_uuid)
 
         await self._check_duplicate_user(user.username, user.email)
 
-        # Debug log for audit fields
         self.log.debug(
             "Creating user with audit fields",
             username=user.username,
-            actor_id=actor_id,
-            created_by=actor_id,
+            actor_id=actor_id_str,
+            created_by=actor_id_str,
         )
 
         new_user = User(
@@ -110,12 +110,12 @@ class SQLiteUserRepository(IUserRepo):
             full_name=user.full_name,
             hashed_password=hashed_password,
             is_superuser=is_superuser,
-            created_by=actor_id,
+            created_by=actor_id_str,
         )
         self.session.add(new_user)
         await self._commit_or_flush(new_user)
 
-        self.log.info("User created", username=user.username, actor_id=actor_id)
+        self.log.info("User created", username=user.username, actor_id=actor_id_str)
         return UserInDB.model_validate(new_user)
 
     async def get_by_id(self, user_id: uuid.UUID | str) -> UserInDB:
@@ -154,16 +154,17 @@ class SQLiteUserRepository(IUserRepo):
         if actor_id is None:
             raise ValueError("actor_id is required for audit trail")
 
-        user_id = self._to_uuid(user_id)
-        actor_id = self._to_uuid(actor_id)
-        user_obj = await self._get_user_or_raise(user_id)
+        user_id_uuid = self._to_uuid(user_id)
+        actor_id_uuid = self._to_uuid(actor_id)
+        actor_id_str = str(actor_id_uuid)
+        user_obj = await self._get_user_or_raise(user_id_uuid)
 
         update_data = data.model_dump(exclude_unset=True)
         update_data.pop("password", None)  # NOTE: hashing handled in service
 
         for key, value in update_data.items():
             setattr(user_obj, key, value)
-        user_obj.updated_by = actor_id
+        user_obj.updated_by = actor_id_str
 
         self.log.info(
             "Updating user record",
@@ -203,15 +204,18 @@ class SQLiteUserRepository(IUserRepo):
     async def soft_delete(
         self, user_id: uuid.UUID | str, actor_id: uuid.UUID | str
     ) -> None:
-        user_id = self._to_uuid(user_id)
-        actor_id = self._to_uuid(actor_id)
-        user_obj = await self._get_user_or_raise(user_id)
+        user_id_uuid = self._to_uuid(user_id)
+        actor_id_uuid = self._to_uuid(actor_id)
+        actor_id_str = str(actor_id_uuid)
+        user_obj = await self._get_user_or_raise(user_id_uuid)
 
-        self.log.info("Soft deleting user record", user_id=user_id, actor_id=actor_id)
+        self.log.info(
+            "Soft deleting user record", user_id=user_id, actor_id=actor_id_str
+        )
         try:
-            await self.audit_repo.soft_delete(user_id, actor_id)
+            await self.audit_repo.soft_delete(user_id_uuid, actor_id_uuid)
             user_obj.is_deleted_flag = True
-            user_obj.deleted_by = actor_id
+            user_obj.deleted_by = actor_id_str
             user_obj.deleted_at = datetime.now().astimezone(UTC)
 
             if self.autocommit:

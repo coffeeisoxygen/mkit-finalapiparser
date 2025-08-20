@@ -23,7 +23,7 @@ class AuditMixinRepository(IAuditMixinRepo[Any]):
         if obj is None:
             raise AuditMixinError(f"Entity not found for soft_delete: {entity_id}")
         obj.is_deleted_flag = True
-        obj.deleted_by = actor_id
+        obj.deleted_by = str(actor_id)
         obj.deleted_at = datetime.now().astimezone()
         await self.session.commit()
 
