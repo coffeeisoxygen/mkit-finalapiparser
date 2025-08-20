@@ -38,7 +38,6 @@ class UserCreate(UserBase):
     password: PasswordStrongStr = Field(
         description="Password untuk user baru, harus kuat dan tidak boleh mengandung spasi."
     )
-    # NOTE: plain password, nanti di-hash di service
 
 
 class AdminSeeder(
@@ -47,9 +46,7 @@ class AdminSeeder(
     """Schema untuk seeding admin user."""
 
     id: uuid.UUID
-    password: str = Field(
-        ..., min_length=6
-    )  # NOTE: plain password, nanti di-hash di service
+    password: str = Field(..., min_length=6)
     is_superuser: bool = True
     is_active: bool = True
     is_deleted: bool = False
@@ -69,7 +66,7 @@ class UserPasswordChange(BaseModel):
     """Schema untuk mengubah password user."""
 
     model_config = {"from_attributes": True, "populate_by_name": True}
-    username: AlphanumericUnderscoreStr
+
     password: PasswordStrongStr | None = None
     repeat_password: PasswordStrongStr | None = None
     new_password: PasswordStrongStr | None = None
