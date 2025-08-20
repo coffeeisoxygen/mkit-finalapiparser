@@ -3,34 +3,27 @@
 Kontrak ini digunakan untuk operasi audit dan soft delete pada entity yang menggunakan AuditMixin.
 """
 
+import uuid
 from abc import ABC, abstractmethod
-from typing import Any, TypeVar
-
-from pydantic_extra_types.ulid import ULID
+from typing import TypeVar
 
 T = TypeVar("T")  # Entity type
 
 
 class IAuditMixinRepo[T](ABC):
-    """Interface repository untuk operasi audit dan soft delete.
-
-    Method:
-            soft_delete: Mark record as soft deleted.
-            restore: Restore soft deleted record.
-            get_audit_log: Get audit log for entity.
-    """
+    """Interface repository untuk operasi audit dan soft delete."""
 
     @abstractmethod
-    async def soft_delete(self, entity_id: ULID | str, actor_id: ULID | str) -> None:
+    async def soft_delete(self, entity_id: uuid.UUID, actor_id: uuid.UUID) -> None:
         """Mark record as soft deleted by actor_id."""
         pass
 
     @abstractmethod
-    async def restore(self, entity_id: ULID | str, actor_id: ULID | str) -> None:
-        """Restore soft deleted record by actor_id."""
+    async def restore(self, entity_id: uuid.UUID) -> None:
+        """Restore soft deleted record."""
         pass
 
     @abstractmethod
-    async def get_audit_log(self, entity_id: ULID | str) -> list[Any]:
-        """Get audit log/history for entity."""
+    async def get_audit_log(self, entity_id: uuid.UUID) -> dict:
+        """Get audit log/history for entity as dict of audit fields."""
         pass

@@ -1,24 +1,16 @@
-from pydantic_extra_types.ulid import ULID
+import uuid
+from datetime import UTC, datetime
+
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.custom.exceptions.cst_exceptions import DataDuplicationError, DataNotFoundError
-from app.database.core import valid_record_filter
+from app.database.repositories.helpers import valid_record_filter
 from app.database.repositories.repo_audit import AuditMixinRepository
 from app.interfaces.intf_user import IUserRepo
 from app.mlogg import logger
 from app.models.db_user import User
 from app.schemas.sch_user import UserCreate, UserInDB, UserResponse, UserUpdate
-
-
-def ensure_ulid(val: ULID | str | None) -> ULID | None:
-    """Convert value to ULID or str if needed, else None."""
-    if val is None:
-        return None
-    if isinstance(val, ULID):
-        return val
-    # Accept int or str, return as str for DB audit fields
-    return str(val)
 
 
 class SQLiteUserRepository(IUserRepo):
@@ -32,7 +24,7 @@ class SQLiteUserRepository(IUserRepo):
     ):
         self.session = session
         self.autocommit = autocommit
-        self.audit_repo = audit_repo or AuditMixinRepository()
+        self.audit_repo = audit_repo or AuditMixinRepository(session, User)
         self.log = logger.bind(repo="SQLiteUserRepository")
         self.log.info(f"Initialized with autocommit={autocommit}")
 
@@ -51,9 +43,13 @@ class SQLiteUserRepository(IUserRepo):
         self,
         user: UserCreate,
         hashed_password: str,
-        actor_id: ULID | str | None = None,
+        actor_id: uuid.UUID | str | None = None,
         is_superuser: bool = False,
     ) -> UserInDB:
+        if actor_id is None:
+            raise ValueError("actor_id is required for audit trail")
+        if isinstance(actor_id, str):
+            actor_id = uuid.UUID(actor_id)
         await self._check_duplicate_user(user.username, user.email)
         new_user = User(
             username=user.username,
@@ -61,7 +57,7 @@ class SQLiteUserRepository(IUserRepo):
             full_name=user.full_name,
             hashed_password=hashed_password,
             is_superuser=is_superuser,
-            created_by=ensure_ulid(actor_id),
+            created_by=actor_id,
         )
         self.session.add(new_user)
         if self.autocommit:
@@ -72,7 +68,9 @@ class SQLiteUserRepository(IUserRepo):
         self.log.info("User created", username=user.username, actor_id=actor_id)
         return UserInDB.model_validate(new_user)
 
-    async def get_by_id(self, user_id: ULID | str) -> UserInDB:
+    async def get_by_id(self, user_id: uuid.UUID | str) -> UserInDB:
+        if isinstance(user_id, str):
+            user_id = uuid.UUID(user_id)
         stmt = select(User).where(User.id == user_id, valid_record_filter(User))
         result = await self.session.execute(stmt)
         user_obj = result.scalar_one_or_none()
@@ -99,8 +97,17 @@ class SQLiteUserRepository(IUserRepo):
         return [UserResponse.model_validate(u) for u in users]
 
     async def update(
-        self, user_id: ULID | str, data: UserUpdate, actor_id: ULID | str | None = None
+        self,
+        user_id: uuid.UUID | str,
+        data: UserUpdate,
+        actor_id: uuid.UUID | str | None = None,
     ) -> UserInDB:
+        if actor_id is None:
+            raise ValueError("actor_id is required for audit trail")
+        if isinstance(user_id, str):
+            user_id = uuid.UUID(user_id)
+        if isinstance(actor_id, str):
+            actor_id = uuid.UUID(actor_id)
         user_obj = await self.session.get(User, user_id)
         if not user_obj:
             self.log.error(
@@ -117,8 +124,7 @@ class SQLiteUserRepository(IUserRepo):
             update_data.pop("password")  # NOTE: hashing handled in service
         for key, value in update_data.items():
             setattr(user_obj, key, value)
-        # Ensure actor_id is ULID object
-        user_obj.updated_by = ensure_ulid(actor_id)
+        user_obj.updated_by = actor_id
         self.log.info(
             "Updating user record",
             method="update",
@@ -139,7 +145,9 @@ class SQLiteUserRepository(IUserRepo):
             raise
         return UserInDB.model_validate(user_obj)
 
-    async def delete(self, user_id: ULID | str) -> None:
+    async def delete(self, user_id: uuid.UUID | str) -> None:
+        if isinstance(user_id, str):
+            user_id = uuid.UUID(user_id)
         user_obj = await self.session.get(User, user_id)
         if not user_obj:
             self.log.error("Data not found for delete", user_id=user_id)
@@ -157,7 +165,13 @@ class SQLiteUserRepository(IUserRepo):
             )
             raise
 
-    async def soft_delete(self, user_id: ULID | str, actor_id: ULID | str) -> None:
+    async def soft_delete(
+        self, user_id: uuid.UUID | str, actor_id: uuid.UUID | str
+    ) -> None:
+        if isinstance(user_id, str):
+            user_id = uuid.UUID(user_id)
+        if isinstance(actor_id, str):
+            actor_id = uuid.UUID(actor_id)
         user_obj = await self.session.get(User, user_id)
         if not user_obj:
             self.log.error(
@@ -167,9 +181,10 @@ class SQLiteUserRepository(IUserRepo):
         self.log.info("Soft deleting user record", user_id=user_id, actor_id=actor_id)
         try:
             # Delegasi ke repo audit
-            await self.audit_repo.soft_delete(user_id, ensure_ulid(actor_id))
+            await self.audit_repo.soft_delete(user_id, actor_id)
             user_obj.is_deleted_flag = True
-            user_obj.deleted_by = ensure_ulid(actor_id)
+            user_obj.deleted_by = actor_id
+            user_obj.deleted_at = datetime.now().astimezone(UTC)
             if self.autocommit:
                 await self.session.commit()
             else:

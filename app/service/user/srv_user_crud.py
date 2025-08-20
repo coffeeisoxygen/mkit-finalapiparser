@@ -1,5 +1,7 @@
 """Service layer for user CRUD operations."""
 
+import uuid
+
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.database.core.uow import UnitOfWork
@@ -22,7 +24,7 @@ class UserCrudService:
     async def create_user(
         self,
         user: UserCreate,
-        actor_id: int | None = None,
+        actor_id: uuid.UUID | str | None = None,
     ) -> UserInDB:
         """Create user with password hashing."""
         hashed_password = self.hasher.hash_value(user.password)
@@ -40,7 +42,7 @@ class UserCrudService:
             return new_user
 
     @logger_wraps(entry=True, exit=True, level="INFO")
-    async def get_user_by_id(self, user_id: int) -> UserInDB:
+    async def get_user_by_id(self, user_id: uuid.UUID | str) -> UserInDB:
         repo = SQLiteUserRepository(self.session, autocommit=True)
         return await repo.get_by_id(user_id)
 
@@ -56,7 +58,10 @@ class UserCrudService:
 
     @logger_wraps(entry=True, exit=True, level="INFO")
     async def update_user(
-        self, user_id: int, data: UserUpdate, actor_id: int | None = None
+        self,
+        user_id: uuid.UUID | str,
+        data: UserUpdate,
+        actor_id: uuid.UUID | str | None = None,
     ) -> UserInDB:
         """Update user, hash password if present."""
         update_data = data.model_dump(exclude_unset=True)
@@ -74,7 +79,7 @@ class UserCrudService:
             return updated_user
 
     @logger_wraps(entry=True, exit=True, level="INFO")
-    async def delete_user(self, user_id: int) -> None:
+    async def delete_user(self, user_id: uuid.UUID | str) -> None:
         async with UnitOfWork(self.session) as uow:
             repo = SQLiteUserRepository(uow.session, autocommit=False)
             await repo.delete(user_id)
@@ -82,7 +87,9 @@ class UserCrudService:
             self.log.info("User deleted via service", user_id=user_id)
 
     @logger_wraps(entry=True, exit=True, level="INFO")
-    async def soft_delete_user(self, user_id: int, actor_id: int) -> None:
+    async def soft_delete_user(
+        self, user_id: uuid.UUID | str, actor_id: uuid.UUID | str
+    ) -> None:
         async with UnitOfWork(self.session) as uow:
             repo = SQLiteUserRepository(uow.session, autocommit=False)
             await repo.soft_delete(user_id, actor_id)

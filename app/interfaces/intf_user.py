@@ -1,6 +1,5 @@
+import uuid
 from abc import ABC, abstractmethod
-
-from pydantic_extra_types.ulid import ULID
 
 from app.schemas.sch_user import UserCreate, UserInDB, UserResponse, UserUpdate
 
@@ -11,13 +10,16 @@ class IUserRepo(ABC):
 
     @abstractmethod
     async def create(
-        self, user: UserCreate, hashed_password: str, actor_id: ULID | str | None = None
+        self,
+        user: UserCreate,
+        hashed_password: str,
+        actor_id: uuid.UUID | str | None = None,
     ) -> UserInDB:
         """Buat user baru. Return UserInDB."""
         pass
 
     @abstractmethod
-    async def get_by_id(self, user_id: ULID | str) -> UserInDB | None:
+    async def get_by_id(self, user_id: uuid.UUID | str) -> UserInDB | None:
         """Ambil user by ID."""
         pass
 
@@ -33,17 +35,22 @@ class IUserRepo(ABC):
 
     @abstractmethod
     async def update(
-        self, user_id: ULID | str, data: UserUpdate, actor_id: ULID | str | None = None
+        self,
+        user_id: uuid.UUID | str,
+        data: UserUpdate,
+        actor_id: uuid.UUID | str | None = None,
     ) -> UserInDB | None:
         """Update data user."""
         pass
 
     @abstractmethod
-    async def delete(self, user_id: ULID | str) -> None:
+    async def delete(self, user_id: uuid.UUID | str) -> None:
         """Hard delete user (hapus total)."""
         pass
 
     @abstractmethod
-    async def soft_delete(self, user_id: ULID | str, actor_id: ULID | str) -> None:
+    async def soft_delete(
+        self, user_id: uuid.UUID | str, actor_id: uuid.UUID | str
+    ) -> None:
         """Soft delete user (pakai AuditMixin)."""
         pass

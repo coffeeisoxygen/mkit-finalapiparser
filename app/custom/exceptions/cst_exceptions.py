@@ -63,6 +63,13 @@ class DataNotFoundError(DataIntegrityError):
     status_code = 404
 
 
+class AuditMixinError(AppExceptionError):
+    """Exception raised for audit mixin errors."""
+
+    default_message = "Audit mixin error occurred."
+    status_code = 500
+
+
 class DataDuplicationError(DataIntegrityError):
     """Exception raised for data duplication errors."""
 

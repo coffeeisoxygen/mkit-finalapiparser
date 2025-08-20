@@ -1,3 +1,5 @@
+import uuid
+
 import pytest
 from app.models.db_user import User
 from app.schemas.sch_user import UserCreate, UserUpdate
@@ -14,7 +16,8 @@ async def test_create_user(test_db_session):
         full_name="Test User",
         password="password@123",
     )
-    created = await service.create_user(user, actor_id=1)
+    actor_id = uuid.uuid4()
+    created = await service.create_user(user, actor_id=actor_id)
     assert created.username == user.username
     assert created.email == user.email
     assert created.full_name == user.full_name
@@ -30,7 +33,8 @@ async def test_get_user_by_id(test_db_session):
         full_name="Get By Id",
         password="password@123",
     )
-    created = await service.create_user(user, actor_id=2)
+    actor_id = uuid.uuid4()
+    created = await service.create_user(user, actor_id=actor_id)
     fetched = await service.get_user_by_id(created.id)
     assert fetched.username == user.username
     assert fetched.email == user.email
@@ -45,7 +49,8 @@ async def test_get_user_by_username(test_db_session):
         full_name="Get By Username",
         password="password@123",
     )
-    created = await service.create_user(user, actor_id=3)
+    actor_id = uuid.uuid4()
+    created = await service.create_user(user, actor_id=actor_id)
     fetched = await service.get_user_by_username(user.username)
     assert fetched.id == created.id
 
@@ -66,9 +71,10 @@ async def test_update_user(test_db_session):
         full_name="Update User",
         password="password@123",
     )
-    created = await service.create_user(user, actor_id=4)
+    actor_id = uuid.uuid4()
+    created = await service.create_user(user, actor_id=actor_id)
     update = UserUpdate(full_name="Updated Name")
-    updated = await service.update_user(created.id, update, actor_id=4)
+    updated = await service.update_user(created.id, update, actor_id=actor_id)
     assert updated.full_name == "Updated Name"
 
 
@@ -81,7 +87,8 @@ async def test_delete_user(test_db_session):
         full_name="Delete User",
         password="password@123",
     )
-    created = await service.create_user(user, actor_id=5)
+    actor_id = uuid.uuid4()
+    created = await service.create_user(user, actor_id=actor_id)
     await service.delete_user(created.id)
     with pytest.raises(Exception):  # noqa: B017
         await service.get_user_by_id(created.id)
@@ -96,11 +103,12 @@ async def test_soft_delete_user(test_db_session):
         full_name="Soft Delete User",
         password="password@123",
     )
-    created = await service.create_user(user, actor_id=6)
-    await service.soft_delete_user(created.id, actor_id=6)
+    actor_id = uuid.uuid4()
+    created = await service.create_user(user, actor_id=actor_id)
+    await service.soft_delete_user(created.id, actor_id=actor_id)
     # Fetch directly from DB to check audit fields
 
     result = await test_db_session.execute(select(User).where(User.id == created.id))
     fetched = result.scalar_one()
     assert fetched.deleted_at is not None
-    assert fetched.deleted_by == 6
+    assert fetched.deleted_by == actor_id
