@@ -13,7 +13,7 @@ from app.schemas.sch_user import (
     UserFilterType,
     UserInDB,
     UserResponse,
-    UserUpdate,
+    UserUpdateProfile,
 )
 from app.service.security.srv_hasher import HasherService
 
@@ -69,14 +69,14 @@ class UserCrudService:
     async def update_user(
         self,
         user_id: uuid.UUID | str,
-        data: UserUpdate,
+        data: UserUpdateProfile,
         actor_id: uuid.UUID | str | None = None,
     ) -> UserInDB:
         """Update user, hash password if present."""
         update_data = data.model_dump(exclude_unset=True)
         if update_data.get("password"):
             update_data["password"] = self.hasher.hash_value(update_data["password"])
-        update_schema = UserUpdate(**update_data)
+        update_schema = UserUpdateProfile(**update_data)
         async with UnitOfWork(self.session) as uow:
             repo = SQLiteUserRepository(uow.session, autocommit=False)
             updated_user = await repo.update(user_id, update_schema, actor_id)

@@ -4,7 +4,7 @@ import uuid
 from datetime import datetime
 from enum import StrEnum
 
-from pydantic import BaseModel, EmailStr, Field
+from pydantic import BaseModel, EmailStr, Field, model_validator
 
 from app.schemas.cmn_validator import (
     AlphanumericUnderscoreStr,
@@ -55,15 +55,37 @@ class AdminSeeder(
     is_deleted: bool = False
 
 
-class UserUpdate(BaseModel):
+class UserUpdateProfile(BaseModel):
     """Schema untuk update user (input partial)."""
 
     username: AlphanumericUnderscoreStr | None = None
     email: EmailStr | None = None
     full_name: AlphanumericWithSpaceStr | None = None
-    password: PasswordStrongStr | None = None
 
     model_config = {"from_attributes": True, "populate_by_name": True}
+
+
+class UserPasswordChange(BaseModel):
+    """Schema untuk mengubah password user."""
+
+    model_config = {"from_attributes": True, "populate_by_name": True}
+    username: AlphanumericUnderscoreStr
+    password: PasswordStrongStr | None = None
+    repeat_password: PasswordStrongStr | None = None
+    new_password: PasswordStrongStr | None = None
+
+    @model_validator(mode="after")
+    def check_password_not_same(self):
+        """Validasi agar password lama dan baru tidak sama, dan repeat password harus sama."""
+        if (
+            self.password
+            and self.repeat_password
+            and self.password != self.repeat_password
+        ):
+            raise ValueError("Password dan repeat password harus sama")
+        if self.password and self.new_password and self.password == self.new_password:
+            raise ValueError("Password baru tidak boleh sama dengan password lama")
+        return self
 
 
 class UserResponse(BaseModel):

@@ -33,7 +33,7 @@ from app.schemas.sch_user import (
     UserFilterType,
     UserInDB,
     UserResponse,
-    UserUpdate,
+    UserUpdateProfile,
 )
 
 settings = get_settings()
@@ -260,18 +260,32 @@ class SQLiteUserRepository(IUserRepo):
     async def update(
         self,
         user_id: uuid.UUID | str,
-        data: UserUpdate,
+        data: UserUpdateProfile,
         actor_id: uuid.UUID | str | None = None,
     ) -> UserInDB:
-        """Update user data (password handled in service layer)."""
+        """Update user profile fields only. Logs warning if password field is present."""
         if actor_id is None:
             raise ValueError("actor_id is required for audit trail")
 
         user_obj = await self._get_user_or_raise(pk_for_query(user_id))
         update_data = data.model_dump(exclude_unset=True)
-        update_data.pop("password", None)  # hashing handled in service
+        if "password" in update_data:
+            self.log.warning(
+                "Password field present in update_data, ignored.",
+                user_id=pk_for_query(user_id),
+                update_data=update_data,
+            )
+            update_data.pop("password")
+        # Only update allowed fields (username, email, full_name)
+        allowed_fields = {"username", "email", "full_name"}
         for key, value in update_data.items():
-            setattr(user_obj, key, value)
+            if key in allowed_fields:
+                setattr(user_obj, key, value)
+            else:
+                self.log.warning(
+                    f"Attempt to update disallowed field '{key}' ignored.",
+                    user_id=pk_for_query(user_id),
+                )
         user_obj.updated_by = to_uuid_str(actor_id)
         await self._commit_or_flush(user_obj)
         self.log.info(
