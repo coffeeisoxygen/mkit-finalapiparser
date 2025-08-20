@@ -1,12 +1,17 @@
-import contextlib
 import uuid
 
 import pytest
 from app.config import get_settings
-from app.custom.exceptions.cst_exceptions import AdminCantDeleteError
+from app.custom.exceptions.cst_exceptions import (
+    AdminCantDeleteError,
+    DataDuplicationError,
+    DataGenericError,
+    DataNotFoundError,
+)
 from app.database.repositories.repo_user import ADM_ID
 from app.models.db_user import User
 from app.schemas.sch_user import UserCreate, UserUpdate
+from app.service.user.srv_admin_seed import AdminSeedService
 from app.service.user.srv_user_crud import UserCrudService
 from pydantic import ValidationError
 from sqlalchemy import select
@@ -95,7 +100,7 @@ async def test_delete_user(test_db_session):
     actor_id = uuid.uuid4()
     created = await service.create_user(user, actor_id=actor_id)
     await service.delete_user(created.id)
-    with pytest.raises(Exception):  # noqa: B017
+    with pytest.raises(DataNotFoundError):
         await service.get_user_by_id(created.id)
 
 
@@ -110,13 +115,36 @@ async def test_soft_delete_user(test_db_session):
     )
     actor_id = uuid.uuid4()
     created = await service.create_user(user, actor_id=actor_id)
-    await service.soft_delete_user(created.id, actor_id=actor_id)
-    # Fetch directly from DB to check audit fields
+    print(f"[DIAG] created.id={created.id} type={type(created.id)}")
+    # Diagnostic: print user after creation
+    result_pre = await test_db_session.execute(select(User))
+    user_pre_list = result_pre.scalars().all()
+    for user_pre in user_pre_list:
+        print(
+            f"[DIAG] DB user after creation: id={user_pre.id} type={type(user_pre.id)} username={user_pre.username} is_deleted_flag={user_pre.is_deleted_flag} deleted_at={user_pre.deleted_at}"
+        )
 
-    result = await test_db_session.execute(select(User).where(User.id == created.id))
-    fetched = result.scalar_one()
+    await service.soft_delete_user(created.id, actor_id=actor_id)
+    # Diagnostic: print all users after soft delete
+    all_result = await test_db_session.execute(select(User))
+    all_users = all_result.scalars().all()
+    print("[DIAG] All users after soft delete:")
+    for u in all_users:
+        print(
+            f"id={u.id} type={type(u.id)} username={u.username} is_deleted_flag={u.is_deleted_flag} deleted_at={u.deleted_at}"
+        )
+
+    # Fetch directly from DB to check audit fields (no filter)
+    result = await test_db_session.execute(
+        select(User).where(User.id == str(created.id))
+    )
+    fetched = result.scalar_one_or_none()
+    print(
+        f"[DIAG] User after soft delete: id={fetched.id if fetched else None}, username={fetched.username if fetched else None}, is_deleted_flag={fetched.is_deleted_flag if fetched else None}, deleted_at={fetched.deleted_at if fetched else None}"
+    )
+    assert fetched is not None, "User should exist after soft delete"
     assert fetched.deleted_at is not None
-    assert fetched.deleted_by == actor_id
+    assert str(fetched.deleted_by) == str(actor_id)
 
 
 @pytest.mark.asyncio
@@ -136,7 +164,7 @@ async def test_create_user_duplicate_username_email(test_db_session):
         full_name="Edge User 2",
         password="password@456",
     )
-    with pytest.raises(Exception):
+    with pytest.raises(DataDuplicationError):
         await service.create_user(user2, actor_id=actor_id)
 
 
@@ -144,7 +172,7 @@ async def test_create_user_duplicate_username_email(test_db_session):
 async def test_get_user_by_invalid_id(test_db_session):
     service = UserCrudService(test_db_session)
     invalid_id = uuid.uuid4()
-    with pytest.raises(Exception):
+    with pytest.raises(DataNotFoundError):
         await service.get_user_by_id(invalid_id)
 
 
@@ -154,7 +182,7 @@ async def test_update_nonexistent_user(test_db_session):
     invalid_id = uuid.uuid4()
     update = UserUpdate(full_name="Should Not Exist")
     actor_id = uuid.uuid4()
-    with pytest.raises(Exception):
+    with pytest.raises(DataNotFoundError):
         await service.update_user(invalid_id, update, actor_id=actor_id)
 
 
@@ -162,7 +190,7 @@ async def test_update_nonexistent_user(test_db_session):
 async def test_delete_nonexistent_user(test_db_session):
     service = UserCrudService(test_db_session)
     invalid_id = uuid.uuid4()
-    with pytest.raises(Exception):
+    with pytest.raises(DataNotFoundError):
         await service.delete_user(invalid_id)
 
 
@@ -171,14 +199,11 @@ async def test_soft_delete_nonexistent_user(test_db_session):
     service = UserCrudService(test_db_session)
     invalid_id = uuid.uuid4()
     actor_id = uuid.uuid4()
-    with pytest.raises(Exception):
+    with pytest.raises(DataGenericError):
         await service.soft_delete_user(invalid_id, actor_id=actor_id)
 
 
-@pytest.mark.asyncio
-async def test_create_user_empty_fields(test_db_session):
-    service = UserCrudService(test_db_session)
-    actor_id = uuid.uuid4()
+def test_create_user_empty_fields():
     with pytest.raises(ValidationError):
         UserCreate(
             username="",
@@ -193,19 +218,20 @@ async def test_admin_cannot_be_deleted(test_db_session):
     settings = get_settings()
     adm_id = uuid.UUID(str(settings.ADM_ID))
     service = UserCrudService(test_db_session)
-    # Ensure admin exists
-    user = UserCreate(
-        username="admin",
-        email="admin@example.com",
-        full_name="Default Admin",
-        password="admin@123",
+    # Ensure admin exists using seeder
+    seeder = AdminSeedService(test_db_session)
+    await seeder.seed_default_admin()
+    # Diagnostic: fetch admin user directly after seeding
+    admin_result = await test_db_session.execute(select(User).where(User.id == adm_id))
+    admin_user = admin_result.scalar_one_or_none()
+    print(
+        f"[DIAG] Admin user after seeding: id={admin_user.id if admin_user else None}, username={admin_user.username if admin_user else None}, is_deleted_flag={admin_user.is_deleted_flag if admin_user else None}, deleted_at={admin_user.deleted_at if admin_user else None}"
     )
-    actor_id = uuid.uuid4()
-    with contextlib.suppress(Exception):
-        await service.create_user(user, actor_id=actor_id)
     # Try to delete admin
     with pytest.raises(AdminCantDeleteError):
         await service.delete_user(adm_id)
-    # Try to delete admin
+    with pytest.raises(AdminCantDeleteError):
+        await service.delete_user(ADM_ID)
+        await service.delete_user(adm_id)
     with pytest.raises(AdminCantDeleteError):
         await service.delete_user(ADM_ID)
