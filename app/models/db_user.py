@@ -1,7 +1,6 @@
 import uuid
 
 from sqlalchemy import Boolean, String
-from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.models import Base
@@ -13,8 +12,8 @@ class User(Base, AuditMixin):
 
     __tablename__ = "users"
 
-    id: Mapped[uuid.UUID] = mapped_column(
-        UUID(as_uuid=True), primary_key=True, default=uuid.uuid4
+    id: Mapped[str] = mapped_column(
+        String(36), primary_key=True, default=lambda: str(uuid.uuid4())
     )
     username: Mapped[str] = mapped_column(
         String, unique=True, nullable=False, index=True
