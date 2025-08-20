@@ -28,7 +28,11 @@ ADM_ID = uuid.UUID(str(settings.ADM_ID))
 
 
 class SQLiteUserRepository(IUserRepo):
-    """SQLite implementation of IUserRepo."""
+    """SQLite implementation of IUserRepo.
+
+    All PK queries use pk_for_query for DB compatibility.
+    Audit fields are always stored as string UUIDs.
+    """
 
     def __init__(
         self,
@@ -36,22 +40,42 @@ class SQLiteUserRepository(IUserRepo):
         autocommit: bool = True,
         audit_repo: AuditMixinRepository | None = None,
     ):
+        """Initialize repository.
+
+        Args:
+            session: Async DB session.
+            autocommit: If True, commit after each operation.
+            audit_repo: Optional audit repo instance.
+        """
         self.session = session
         self.autocommit = autocommit
         self.audit_repo = audit_repo or AuditMixinRepository(session, User)
         self.log = logger.bind(repo="SQLiteUserRepository")
         self.log.info(f"Initialized with autocommit={autocommit}")
 
-    # ----------------- Helper Methods -----------------
-
-    # Use global helpers for UUID conversion
-
     def _is_admin_id(self, user_id: uuid.UUID | str) -> bool:
-        # Always convert to UUID for admin check
+        """Check if user_id is system admin.
+
+        Args:
+            user_id: PK (UUID or str).
+
+        Returns:
+            bool: True if admin.
+        """
         return to_uuid(user_id) == ADM_ID
 
     async def _get_user_or_raise(self, user_id: uuid.UUID | str) -> User:
-        # Always use pk_for_query for PK queries
+        """Get user by PK or raise DataNotFoundError.
+
+        Args:
+            user_id: PK (UUID or str).
+
+        Returns:
+            User: ORM user object.
+
+        Raises:
+            DataNotFoundError: If user not found.
+        """
         user_id_pk = pk_for_query(user_id)
         user_obj = await self.session.get(User, user_id_pk)
         if not user_obj:
@@ -60,6 +84,15 @@ class SQLiteUserRepository(IUserRepo):
         return user_obj
 
     async def _check_duplicate_user(self, username: str, email: str) -> None:
+        """Check for duplicate username or email.
+
+        Args:
+            username: Username to check.
+            email: Email to check.
+
+        Raises:
+            DataDuplicationError: If duplicate found.
+        """
         stmt = select(User).where((User.username == username) | (User.email == email))
         result = await self.session.execute(stmt)
         existing = result.scalar_one_or_none()
@@ -68,6 +101,14 @@ class SQLiteUserRepository(IUserRepo):
             raise DataDuplicationError(context={"username": username, "email": email})
 
     async def _commit_or_flush(self, obj: User):
+        """Commit or flush DB transaction.
+
+        Args:
+            obj: ORM object to refresh.
+
+        Raises:
+            DataGenericError: If commit/flush fails.
+        """
         try:
             if self.autocommit:
                 await self.session.commit()
@@ -79,7 +120,6 @@ class SQLiteUserRepository(IUserRepo):
             self.log.exception("Database commit/flush failed", error=str(e))
             raise DataGenericError("Failed to commit/flush transaction", cause=e) from e
 
-    # ----------------- CRUD Methods -----------------
     async def create(
         self,
         user: UserCreate,
@@ -87,6 +127,21 @@ class SQLiteUserRepository(IUserRepo):
         actor_id: uuid.UUID | str | None = None,
         is_superuser: bool = False,
     ) -> UserInDB:
+        """Create new user.
+
+        Args:
+            user: UserCreate schema.
+            hashed_password: Hashed password.
+            actor_id: Actor performing creation.
+            is_superuser: If True, user is superuser.
+
+        Returns:
+            UserInDB: Created user.
+
+        Raises:
+            ValueError: If actor_id missing.
+            DataDuplicationError: If duplicate found.
+        """
         if actor_id is None:
             raise ValueError("actor_id is required for audit trail")
         actor_id_str = to_uuid_str(actor_id)
@@ -115,6 +170,17 @@ class SQLiteUserRepository(IUserRepo):
         return UserInDB.model_validate(new_user)
 
     async def get_by_id(self, user_id: uuid.UUID | str) -> UserInDB:
+        """Get user by ID.
+
+        Args:
+            user_id: PK (UUID or str).
+
+        Returns:
+            UserInDB: User object.
+
+        Raises:
+            DataNotFoundError: If user not found.
+        """
         user_id_pk = pk_for_query(user_id)
         stmt = select(User).where(User.id == user_id_pk, valid_record_filter(User))
         result = await self.session.execute(stmt)
@@ -125,6 +191,17 @@ class SQLiteUserRepository(IUserRepo):
         return UserInDB.model_validate(user_obj)
 
     async def get_by_username(self, username: str) -> UserInDB:
+        """Get user by username.
+
+        Args:
+            username: Username.
+
+        Returns:
+            UserInDB: User object.
+
+        Raises:
+            DataNotFoundError: If user not found.
+        """
         stmt = select(User).where(User.username == username, valid_record_filter(User))
         result = await self.session.execute(stmt)
         user_obj = result.scalar_one_or_none()
@@ -136,6 +213,15 @@ class SQLiteUserRepository(IUserRepo):
         return UserInDB.model_validate(user_obj)
 
     async def list_all(self, skip: int = 0, limit: int = 100) -> list[UserResponse]:
+        """List all users.
+
+        Args:
+            skip: Offset.
+            limit: Max records.
+
+        Returns:
+            list[UserResponse]: List of users.
+        """
         stmt = select(User).where(valid_record_filter(User)).offset(skip).limit(limit)
         result = await self.session.execute(stmt)
         users = result.scalars().all()
@@ -147,6 +233,20 @@ class SQLiteUserRepository(IUserRepo):
         data: UserUpdate,
         actor_id: uuid.UUID | str | None = None,
     ) -> UserInDB:
+        """Update user data.
+
+        Args:
+            user_id: PK (UUID or str).
+            data: UserUpdate schema.
+            actor_id: Actor performing update.
+
+        Returns:
+            UserInDB: Updated user.
+
+        Raises:
+            ValueError: If actor_id missing.
+            DataNotFoundError: If user not found.
+        """
         if actor_id is None:
             raise ValueError("actor_id is required for audit trail")
 
@@ -172,6 +272,16 @@ class SQLiteUserRepository(IUserRepo):
         return UserInDB.model_validate(user_obj)
 
     async def delete(self, user_id: uuid.UUID | str) -> None:
+        """Hard delete user (hapus total).
+
+        Args:
+            user_id: PK (UUID or str).
+
+        Raises:
+            AdminCantDeleteError: If admin user.
+            DataNotFoundError: If user not found.
+            DataGenericError: If delete fails.
+        """
         user_id_pk = pk_for_query(user_id)
         user_obj = await self._get_user_or_raise(user_id_pk)
 
@@ -206,6 +316,16 @@ class SQLiteUserRepository(IUserRepo):
     async def soft_delete(
         self, user_id: uuid.UUID | str, actor_id: uuid.UUID | str
     ) -> None:
+        """Soft delete user (pakai AuditMixin).
+
+        Args:
+            user_id: PK (UUID or str).
+            actor_id: Actor performing delete.
+
+        Raises:
+            DataNotFoundError: If user not found.
+            DataGenericError: If soft delete fails.
+        """
         user_id_pk = pk_for_query(user_id)
         actor_id_pk = pk_for_query(actor_id)
         user_obj = await self._get_user_or_raise(user_id_pk)
