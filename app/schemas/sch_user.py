@@ -2,6 +2,7 @@
 
 import uuid
 from datetime import datetime
+from enum import StrEnum
 
 from pydantic import BaseModel, EmailStr, Field
 
@@ -10,6 +11,13 @@ from app.schemas.cmn_validator import (
     AlphanumericWithSpaceStr,
     PasswordStrongStr,
 )
+
+
+class UserFilterType(StrEnum):
+    VALID = "valid"
+    INACTIVE = "inactive"
+    SOFT_DELETED = "soft_deleted"
+    ALL = "all"
 
 
 class UserBase(BaseModel):

@@ -26,7 +26,7 @@ from app.database.repositories.helpers_uuids import (
 from app.database.repositories.repo_audit import AuditMixinRepository
 from app.mlogg import logger
 from app.models.db_user import User
-from app.schemas.sch_user import UserCreate, UserInDB, UserResponse, UserUpdate
+from app.schemas.sch_user import UserCreate, UserInDB, UserResponse, UserUpdate, UserFilterType
 
 settings = get_settings()
 ADM_ID = uuid.UUID(str(settings.ADM_ID))
@@ -278,25 +278,25 @@ class SQLiteUserRepository(IUserRepo):
         return UserInDB.model_validate(user_obj)
 
     async def list_all(
-        self, skip: int = 0, limit: int = 100, filter_type: str = "valid"
+        self, skip: int = 0, limit: int = 100, filter_type: UserFilterType = UserFilterType.VALID
     ) -> list[UserResponse]:
         """List all users.
 
         Args:
             skip: Offset.
             limit: Max records.
-            filter_type: "valid", "soft_deleted", "inactive", "all"
+            filter_type: UserFilterType enum (VALID, SOFT_DELETED, INACTIVE, ALL)
 
         Returns:
             list[UserResponse]: List of users.
         """
-        if filter_type == "valid":
+        if filter_type == UserFilterType.VALID:
             filter_cond = valid_record_filter(User)
-        elif filter_type == "soft_deleted":
+        elif filter_type == UserFilterType.SOFT_DELETED:
             filter_cond = soft_deleted_filter(User)
-        elif filter_type == "inactive":
+        elif filter_type == UserFilterType.INACTIVE:
             filter_cond = inactive_filter(User)
-        elif filter_type == "all":
+        elif filter_type == UserFilterType.ALL:
             filter_cond = all_records_filter(User)
         else:
             filter_cond = valid_record_filter(User)
