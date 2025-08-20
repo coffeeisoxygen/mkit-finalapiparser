@@ -9,7 +9,7 @@ from typing import Any
 
 from app.custom.exceptions.cst_exceptions import AuditMixinError
 from app.database.interfaces.intf_audit import IAuditMixinRepo
-from app.database.repositories.helpers import pk_for_query, to_uuid_str
+from app.database.repositories.uuid_helpers import pk_for_query, to_uuid_str
 
 
 class AuditMixinRepository(IAuditMixinRepo[Any]):

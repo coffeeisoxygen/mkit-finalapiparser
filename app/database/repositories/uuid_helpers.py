@@ -1,22 +1,4 @@
 import uuid
-from typing import Any
-
-
-# ------------------------
-# Record validation
-# ------------------------
-def valid_record_filter(model: Any) -> Any:
-    """Return a SQLAlchemy filter condition for valid (active, not deleted) records."""
-    return (
-        (model.is_active.is_(True))
-        & (model.is_deleted_flag.is_(False))
-        & (model.deleted_at.is_(None))
-    )
-
-
-def is_valid_record(model: Any) -> bool:
-    """Check if a model instance is valid (active, not deleted)."""
-    return bool(model.is_active and not model.is_deleted_flag and not model.deleted_at)
 
 
 # ------------------------
